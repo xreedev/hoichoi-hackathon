@@ -28,3 +28,4 @@ One line per decision. **(you)** = your call, **(me)** = my call under "make the
 - (me) Result on the dev sample: only 3 of 12 scene boundaries fall in silence, and the 420 s gap leaves room for 1 break. Accepted as is.
 - (me) API keeps runs in memory; the pipeline runs in a background thread; SSE streams the run's event list. Re-match considers every brand in the current catalogue.
 - (me) Add brand / upload edits a working copy of the catalogue (`runs/_catalogue.json`); `assets/brands.json` is never modified.
+- (me) The UI is one static page, vanilla JS. The player reads our VMAP and plays the ad in a second <video> over the content, then seeks back to the exact offset (tested: +0.13 s).

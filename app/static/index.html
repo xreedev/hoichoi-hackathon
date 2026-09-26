@@ -1,1 +1,237 @@
-<!doctype html><title>hoichoi ad breaks</title><p>UI coming soon</p>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hoichoi ad breaks</title>
+<style>
+  :root { --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --text:#e6e8ee; --muted:#8a93a6; --accent:#e5484d;
+          --ok:#30a46c; --warn:#f5a524; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:baseline; }
+  header h1 { font-size:18px; margin:0; } header span { color:var(--muted); }
+  main { display:grid; grid-template-columns: 340px 1fr; gap:16px; padding:16px 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; }
+  label { display:block; margin:8px 0 4px; color:var(--muted); font-size:12px; }
+  input, select, button { font:inherit; color:var(--text); background:#11141a; border:1px solid var(--line); border-radius:6px; padding:7px 9px; width:100%; }
+  button { background:var(--accent); border:none; cursor:pointer; font-weight:600; width:auto; padding:8px 14px; }
+  button.secondary { background:#2a2f3a; } button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  ul.stages { list-style:none; padding:0; margin:0; font-family: ui-monospace, Menlo, monospace; font-size:12px; }
+  ul.stages li { padding:2px 0; } .muted { color:var(--muted); } .warnline { color:var(--warn); } .err { color:var(--accent); }
+  .chip { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; margin:1px; background:#2a2f3a; }
+  .chip.neg { background:#4a1d20; color:#ffb4b4; }
+  table { width:100%; border-collapse:collapse; font-size:12px; } td, th { text-align:left; padding:5px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .player { position:relative; background:#000; border-radius:8px; overflow:hidden; aspect-ratio:16/9; }
+  .player video { position:absolute; inset:0; width:100%; height:100%; background:#000; }
+  #ad { display:none; } .adbadge { display:none; position:absolute; top:10px; left:10px; background:var(--warn); color:#000; font-weight:700; padding:3px 9px; border-radius:4px; font-size:12px; }
+  svg text { fill: var(--muted); font-size:10px; }
+  .panelgrid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; } @media (max-width: 900px) { .panelgrid { grid-template-columns:1fr; } }
+  .bar { height:8px; background:var(--accent); border-radius:4px; }
+  pre { white-space:pre-wrap; font-size:11px; color:var(--muted); margin:0; }
+  a { color:#8ab4ff; }
+</style>
+</head>
+<body>
+<header><h1>Context-aware ad breaks</h1><span>Bengali drama → scenes → safe breaks → matched brands → VMAP</span></header>
+<main>
+  <div>
+    <section>
+      <h2>New run</h2>
+      <label>Pick a sample</label>
+      <select id="sample"><option value="">— none —</option></select>
+      <label>…or upload a video</label>
+      <input type="file" id="file" accept="video/*">
+      <div class="row" style="margin-top:10px"><button id="go">Run</button><span id="runid" class="muted"></span></div>
+    </section>
+    <section>
+      <h2>Progress</h2>
+      <ul class="stages" id="stages"><li class="muted">No run yet.</li></ul>
+    </section>
+    <section>
+      <h2>Brand library</h2>
+      <table id="brands"></table>
+      <details style="margin-top:10px"><summary>Add brand</summary>
+        <label>Brand id</label><input id="b_id" placeholder="brand_x">
+        <label>Display name</label><input id="b_name" placeholder="Brand X">
+        <label>Category</label><input id="b_cat" placeholder="pets/pet food">
+        <label>Target contexts (comma-separated)</label><input id="b_tgt" placeholder="pet, dog, feeding pets">
+        <label>Negative contexts (comma-separated)</label><input id="b_neg" placeholder="funeral, hospital, violence">
+        <label>Ad duration (s)</label><input id="b_dur" type="number" value="15">
+        <div class="row" style="margin-top:10px"><button id="addbrand" class="secondary">Add brand</button><span id="brandmsg" class="muted"></span></div>
+      </details>
+    </section>
+  </div>
+  <div>
+    <section>
+      <div class="player"><video id="content" controls playsinline></video><video id="ad" playsinline></video><div class="adbadge" id="adbadge">AD</div></div>
+      <div class="row" style="margin-top:10px">
+        <button id="rematch" class="secondary" disabled>Re-match brands</button>
+        <a id="dlvmap" href="#">Download VMAP</a> <a id="dldebug" href="#">Download debug.json</a>
+        <span id="summary" class="muted"></span>
+      </div>
+    </section>
+    <section>
+      <h2>Timeline <span class="muted" style="text-transform:none;letter-spacing:0">— scenes (colour = mood, red hatch = sensitive), speech, candidates (green = break, grey = rejected). Click a candidate.</span></h2>
+      <svg id="timeline" width="100%" height="120"></svg>
+    </section>
+    <section id="detail"><h2>Break details</h2><div class="muted">Click a candidate on the timeline.</div></section>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = (t) => `${String(Math.floor(t/60)).padStart(2,"0")}:${(t%60).toFixed(1).padStart(4,"0")}`;
+const MOOD = {happy:"#30a46c", neutral:"#5b6b88", tense:"#f5a524", sad:"#3e63dd", romantic:"#d6409f", comic:"#12a594", angry:"#e5484d"};
+let RUN = null, DATA = null, BREAKS = [];
+
+async function loadBrands() {
+  const bs = await (await fetch("/api/brands")).json();
+  $("brands").innerHTML = "<tr><th>Brand</th><th>Targets</th><th>Negative</th></tr>" + bs.map(b =>
+    `<tr><td><b>${esc(b.name)}</b><br><span class="muted">${esc(b.category)}</span></td>
+     <td>${b.target_contexts.slice(0,5).map(t => `<span class="chip">${esc(t)}</span>`).join("")}${b.target_contexts.length>5?" …":""}</td>
+     <td>${b.negative_contexts.map(t => `<span class="chip neg">${esc(t)}</span>`).join("")}</td></tr>`).join("");
+}
+async function loadSamples() {
+  const ss = await (await fetch("/api/samples")).json();
+  $("sample").innerHTML = `<option value="">— none —</option>` + ss.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+}
+
+$("go").onclick = async () => {
+  const fd = new FormData();
+  if ($("file").files[0]) fd.append("video", $("file").files[0]);
+  else if ($("sample").value) fd.append("sample_id", $("sample").value);
+  else return alert("Pick a sample or choose a file.");
+  $("go").disabled = true; $("stages").innerHTML = "<li class='muted'>Uploading…</li>";
+  const r = await fetch("/api/runs", {method:"POST", body: fd});
+  if (!r.ok) { $("go").disabled = false; return alert(await r.text()); }
+  RUN = (await r.json()).run_id; $("runid").textContent = "run " + RUN;
+  $("stages").innerHTML = "";
+  const es = new EventSource(`/api/runs/${RUN}/events`);
+  const line = (html, cls="") => { const li = document.createElement("li"); li.className = cls; li.innerHTML = html; $("stages").appendChild(li); };
+  es.addEventListener("stage_done", e => { const d = JSON.parse(e.data); line(`✓ ${esc(d.stage).padEnd(12)} ${d.seconds.toFixed(1)}s  ${esc(d.summary)}`); });
+  es.addEventListener("warning", e => { const d = JSON.parse(e.data); line(`! ${esc(d.message)}`, "warnline"); });
+  es.addEventListener("error", e => { if (e.data) { line(`✗ ${esc(JSON.parse(e.data).message)}`, "err"); } es.close(); $("go").disabled = false; });
+  es.addEventListener("done", () => { es.close(); $("go").disabled = false; loadResult(); });
+};
+
+async function loadResult(payload) {
+  const r = payload || await (await fetch(`/api/runs/${RUN}`)).json();
+  if (r.status !== "done") return;
+  DATA = r; const res = r.result;
+  $("rematch").disabled = false; $("dlvmap").href = r.vmap_url; $("dldebug").href = r.debug_url;
+  const sel = res.candidates.filter(c => c.status === "selected").length;
+  $("summary").textContent = `${res.scenes.length} scenes · ${res.candidates.length} candidates · ${res.placements.length} breaks`;
+  const content = $("content");
+  if (!content.src.endsWith(r.proxy_url)) content.src = r.proxy_url;
+  await loadVmap(r.vmap_url);
+  drawTimeline();
+}
+
+// ---- player: reads OUR VMAP, cuts to the ad at each timeOffset, resumes at the exact offset -------------
+function hmsToSec(s) { const [h,m,x] = s.split(":"); return (+h)*3600 + (+m)*60 + parseFloat(x); }
+async function loadVmap(url) {
+  const xml = new DOMParser().parseFromString(await (await fetch(url)).text(), "application/xml");
+  const V = "http://www.iab.com/VAST";
+  BREAKS = [...xml.getElementsByTagNameNS("http://www.iab.net/videosuite/vmap", "AdBreak")].map(b => ({
+    id: b.getAttribute("breakId"), t: hmsToSec(b.getAttribute("timeOffset")),
+    media: b.getElementsByTagNameNS(V, "MediaFile")[0].textContent.trim(),
+    title: b.getElementsByTagNameNS(V, "AdTitle")[0].textContent, played: false }));
+}
+const content = $("content"), ad = $("ad");
+let inAd = null;
+content.addEventListener("timeupdate", () => {
+  if (inAd) return;
+  const b = BREAKS.find(b => !b.played && content.currentTime >= b.t && content.currentTime < b.t + 1.5);
+  if (b) playAd(b);
+});
+content.addEventListener("seeked", () => { if (!inAd) BREAKS.forEach(b => { if (b.t < content.currentTime - 1.5) b.played = true; }); });
+function playAd(b) {
+  inAd = b; b.played = true; content.pause();
+  ad.src = b.media; ad.style.display = "block"; $("adbadge").style.display = "block"; $("adbadge").textContent = `AD · ${b.title}`;
+  ad.play();
+}
+ad.addEventListener("ended", () => {
+  const b = inAd; inAd = null; ad.style.display = "none"; $("adbadge").style.display = "none";
+  content.currentTime = b.t; content.play();
+});
+
+// ---- timeline -----------------------------------------------------------------------------------------
+function drawTimeline() {
+  const res = DATA.result, dur = res.meta.duration_s, svg = $("timeline"), W = svg.clientWidth || 800;
+  const x = t => 4 + (W - 8) * t / dur, NS = "http://www.w3.org/2000/svg";
+  svg.innerHTML = `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="#e5484d" stroke-width="3"/></pattern></defs>`;
+  const add = (tag, attrs, title) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (title) { const t = document.createElementNS(NS, "title"); t.textContent = title; el.appendChild(t); } svg.appendChild(el); return el; };
+  add("text", {x: 4, y: 11}).textContent = "scenes";
+  res.scenes.forEach(s => {
+    const sens = s.sensitive_tags.filter(t => t.tag !== "none" && t.confidence >= 0.10);
+    const title = `#${s.id} ${fmt(s.start_s)}–${fmt(s.end_s)} ${s.mood}\n${s.dominant_activity} @ ${s.setting}` +
+                  (sens.length ? `\nsensitive: ${sens.map(t => t.tag + " " + t.confidence).join(", ")}` : "");
+    const r = add("rect", {x: x(s.start_s), y: 14, width: Math.max(1, x(s.end_s) - x(s.start_s) - 1), height: 26, fill: MOOD[s.mood] || "#555", rx: 2}, title);
+    r.style.cursor = "pointer"; r.onclick = () => { content.currentTime = s.start_s; };
+    if (sens.length) add("rect", {x: x(s.start_s), y: 14, width: Math.max(1, x(s.end_s) - x(s.start_s) - 1), height: 26, fill: "url(#hatch)", "pointer-events": "none"});
+  });
+  add("text", {x: 4, y: 53}).textContent = "speech";
+  (DATA.speech || []).forEach(s => add("rect", {x: x(s.start_s), y: 56, width: Math.max(0.5, x(s.end_s) - x(s.start_s)), height: 8, fill: "#4b5263"}));
+  add("text", {x: 4, y: 78}).textContent = "candidates";
+  const placed = Object.fromEntries(res.placements.map(p => [p.t_s, p]));
+  res.candidates.forEach(c => {
+    const sel = c.status === "selected" && placed[c.t_s];
+    const el = add("rect", {x: x(c.t_s) - (sel ? 3 : 1.5), y: sel ? 80 : 84, width: sel ? 6 : 3, height: sel ? 30 : 20,
+                            fill: sel ? "#3dd68c" : (c.is_scene_boundary ? "#8a93a6" : "#3a4050"), rx: 1,
+                            stroke: sel ? "#fff" : "none", class: sel ? "cand break" : "cand"},
+                   `${fmt(c.t_s)} ${c.status}${c.is_scene_boundary ? " (scene boundary)" : ""}`);
+    el.style.cursor = "pointer"; el.onclick = () => showDetail(c);
+  });
+  const cur = add("line", {x1: 0, x2: 0, y1: 12, y2: 116, stroke: "#fff", "stroke-width": 1, id: "cursor"});
+  content.ontimeupdate = () => { cur.setAttribute("x1", x(content.currentTime)); cur.setAttribute("x2", x(content.currentTime)); };
+}
+
+function showDetail(c) {
+  const res = DATA.result, sc = Object.fromEntries(res.scenes.map(s => [s.id, s]));
+  const p = res.placements.find(p => p.t_s === c.t_s), bm = c.decisions.brand_match;
+  const scene = s => s ? `<b>#${s.id}</b> ${fmt(s.start_s)}–${fmt(s.end_s)} · ${esc(s.mood)} · tension ${s.narrative_tension}<br>${esc(s.summary_en)}<br>
+      <span class="muted">${esc(s.dominant_activity)} @ ${esc(s.setting)}</span><br>${s.sensitive_tags.map(t => `<span class="chip ${t.tag!=="none"&&t.confidence>=0.1?"neg":""}">${esc(t.tag)} ${t.confidence}</span>`).join("")}` : "—";
+  let html = `<h2>Candidate at ${fmt(c.t_s)} — <span style="color:${p ? "var(--ok)" : "var(--muted)"}">${p ? "AD BREAK" : "rejected"}</span></h2>
+    <div class="row" style="margin-bottom:8px"><button class="secondary" onclick="content.currentTime=${Math.max(0, c.t_s - 5)};content.play()">Play from 5 s before</button>
+    <span class="muted">pause ${(c.pause_before_s + c.pause_after_s).toFixed(1)} s · scene boundary: ${c.is_scene_boundary ? "yes" : "no"} · score ${c.score?.toFixed(3)}</span></div>
+    <div class="panelgrid"><div><label>Scene before</label>${scene(sc[c.prev_scene_id])}</div><div><label>Scene after</label>${scene(sc[c.next_scene_id])}</div></div>
+    <label>Why (pacing & safety verdict)</label><ul>${c.reasons.map(r => `<li class="${r.startsWith("REJECT")||r.startsWith("DROPPED") ? "err" : ""}">${esc(r)}</li>`).join("")}</ul>`;
+  if (bm) {
+    const rank = Object.entries(bm.ranking || {}).sort((a, b) => b[1] - a[1]);
+    html += `<div class="panelgrid"><div><label>Brand ranking (${esc(bm.sources?.ranking || "")})</label>
+      ${rank.map(([id, v]) => `<div class="row"><span style="width:90px">${esc(id)}${id === bm.winner ? " ✓" : ""}</span><div style="flex:1;background:#2a2f3a;border-radius:4px"><div class="bar" style="width:${(v*100).toFixed(0)}%;background:${id===bm.winner?"var(--ok)":"var(--accent)"}"></div></div><span>${v.toFixed(2)}</span></div>`).join("") || "<span class='muted'>no survivor</span>"}
+      ${p ? `<p><b>${esc(p.brand_id)}</b> — ${esc(p.brand_reason)}</p>` : ""}</div>
+      <div><label>Brands blocked</label>${bm.blocked.length ? `<table>${bm.blocked.map(b => `<tr><td><b>${esc(b.brand_id)}</b></td><td>${esc(b.reason)}<pre>${esc(JSON.stringify(b.evidence))}</pre></td></tr>`).join("")}</table>` : "<span class='muted'>none</span>"}</div></div>`;
+  }
+  $("detail").innerHTML = html;
+}
+
+$("rematch").onclick = async () => {
+  $("rematch").disabled = true; $("rematch").textContent = "Re-matching…";
+  const r = await fetch(`/api/runs/${RUN}/rematch`, {method: "POST"});
+  $("rematch").textContent = "Re-match brands"; $("rematch").disabled = false;
+  if (!r.ok) return alert(await r.text());
+  BREAKS = []; await loadResult(await r.json());
+};
+
+$("addbrand").onclick = async () => {
+  const split = s => s.split(",").map(x => x.trim()).filter(Boolean), dur = +$("b_dur").value || 15, id = $("b_id").value.trim();
+  const body = {brand_id: id, display_name: $("b_name").value.trim(), category: $("b_cat").value.trim(),
+                target_contexts: split($("b_tgt").value), negative_contexts: split($("b_neg").value),
+                creatives: [{id: `${id}_${dur}s`, duration_sec: dur, language: "bn", url: `ads/${id}/${id}_${dur}s.mp4`}]};
+  const r = await fetch("/api/brands", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+  $("brandmsg").textContent = r.ok ? "Added. Click Re-match." : await r.text();
+  if (r.ok) loadBrands();
+};
+
+window.addEventListener("resize", () => DATA && drawTimeline());
+loadBrands(); loadSamples();
+</script>
+</body>
+</html>
