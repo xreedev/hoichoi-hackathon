@@ -865,17 +865,20 @@ async function pollStatus() {
   try { data = await fetch(`/api/runs/${RUN_ID}/status`).then(r => r.json()); }
   catch { pollTimer = setTimeout(pollStatus, 2000); return; }
 
-  processEvents(data.events || []);
+  const newEvents = (data.events || []).slice(_seenEvents);
+  _seenEvents += newEvents.length;
 
-  if (data.status === 'done') {
-    clearTimeout(pollTimer);
+  if (newEvents.length) {
+    await animateEvents(newEvents, data.status);
+  }
+
+  if (data.status === 'done' && !newEvents.length) {
     loadResult();
-  } else if (data.status === 'error') {
-    clearTimeout(pollTimer);
+  } else if (data.status === 'error' && !newEvents.length) {
     showStepError(data.error || 'An error occurred.');
     $('retry-btn').classList.remove('hidden');
     $('run-btn').disabled = false;
-  } else {
+  } else if (data.status !== 'done' && data.status !== 'error') {
     pollTimer = setTimeout(pollStatus, 2000);
   }
 }
@@ -884,23 +887,42 @@ let _seenEvents = 0;
 let _doneWeight = 0;
 let _doneCount  = 0;
 
-function processEvents(events) {
-  events.slice(_seenEvents).forEach(e => {
-    _seenEvents++;
+// animate a batch of events with small delays so cached runs still feel progressive
+async function animateEvents(events, finalStatus) {
+  // if many events arrive at once (cached run), space them out visually
+  const delay = events.length > 4 ? 180 : 0;
+  for (const e of events) {
     const stage = e.data?.stage;
     if (e.event === 'stage_start' && stage) {
       activateStage(stage);
+      if (delay) await sleep(delay / 2);
     } else if (e.event === 'stage_done' && stage) {
       completeStage(stage, e.data.seconds, e.data.summary || '');
       _doneWeight += STAGE_WEIGHT[stage] || 1;
       _doneCount++;
       updateProgress();
+      if (delay) await sleep(delay);
     } else if (e.event === 'warning' && stage) {
       const sub = $(`ss-${stage}`);
       if (sub) sub.textContent = '⚠ ' + (e.data.message || '');
+    } else if (e.event === 'error') {
+      showStepError(e.data?.message || 'An error occurred.');
+      $('retry-btn').classList.remove('hidden');
+      $('run-btn').disabled = false;
+      return;
     }
-  });
+  }
+  if (finalStatus === 'done') loadResult();
+  else if (finalStatus === 'error') {
+    showStepError('An error occurred.');
+    $('retry-btn').classList.remove('hidden');
+    $('run-btn').disabled = false;
+  } else {
+    pollTimer = setTimeout(pollStatus, 2000);
+  }
 }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function updateProgress() {
   const pct = Math.round(_doneWeight / TOTAL_WEIGHT * 100);
