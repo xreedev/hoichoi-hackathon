@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from app.config import Config
@@ -91,9 +90,17 @@ def score(feats: dict[str, float], cfg: Config) -> float:
 
 # ---- selection -------------------------------------------------------------------------------------
 
-def budget(duration_s: float, cfg: Config) -> int:
-    """Pro-rata break budget: floor(max_breaks_per_hour × hours)."""
-    return math.floor(cfg.pacing.max_breaks_per_hour * duration_s / 3600 + 1e-9)
+HOUR_S = 3600.0
+
+
+def max_in_window(times: list[float], window_s: float = HOUR_S) -> int:
+    """Largest number of breaks inside any rolling window of `window_s` seconds."""
+    ts, best, j = sorted(times), 0, 0
+    for i, t in enumerate(ts):
+        while t - ts[j] >= window_s:
+            j += 1
+        best = max(best, i - j + 1)
+    return best
 
 
 def ad_load_pct(n_breaks: int, ad_duration_s: float, duration_s: float) -> float:
@@ -121,14 +128,12 @@ def apply(cands: list[Candidate], scenes: list[Scene], duration_s: float, cfg: C
         else:
             eligible.append(c)
 
-    cap = budget(duration_s, cfg)
     chosen: list[Candidate] = []
     for c in sorted(eligible, key=lambda c: (-c.score, c.t_s, c.id)):
         clash = next((s for s in chosen if abs(s.t_s - c.t_s) < p.min_gap_s), None)
         load = ad_load_pct(len(chosen) + 1, ad_s, duration_s)
-        if len(chosen) >= cap:
-            c.status, why = "rejected", f"SKIP break budget reached ({cap} = {p.max_breaks_per_hour}/h × " \
-                                        f"{duration_s / 3600:.2f} h)"
+        if max_in_window([s.t_s for s in chosen] + [c.t_s]) > p.max_breaks_per_hour:
+            c.status, why = "rejected", f"SKIP would exceed {p.max_breaks_per_hour} breaks in a 60-min window"
         elif clash is not None:
             c.status, why = "rejected", f"SKIP within {p.min_gap_s:.0f}s of selected break at {fmt_t(clash.t_s)}"
         elif load > p.max_ad_load_pct:
@@ -147,8 +152,8 @@ def violations(cands: list[Candidate], duration_s: float, cfg: Config, ad_durati
     ad_s = ad_duration_s if ad_duration_s is not None else p.default_ad_duration_s
     sel = sorted((c for c in cands if c.status == "selected"), key=lambda c: c.t_s)
     errs = []
-    if len(sel) > budget(duration_s, cfg):
-        errs.append(f"{len(sel)} breaks > budget {budget(duration_s, cfg)}")
+    if max_in_window([c.t_s for c in sel]) > p.max_breaks_per_hour:
+        errs.append(f"{max_in_window([c.t_s for c in sel])} breaks in a 60-min window > {p.max_breaks_per_hour}")
     for a, b in zip(sel, sel[1:], strict=False):
         if b.t_s - a.t_s < p.min_gap_s:
             errs.append(f"gap {b.t_s - a.t_s:.1f}s < {p.min_gap_s}s between {a.t_s} and {b.t_s}")

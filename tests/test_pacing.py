@@ -100,3 +100,14 @@ def test_deterministic():
     b = pacing.apply(cands, scenes, dur, CFG)
     assert [c.model_dump() for c in a] == [c.model_dump() for c in b]
     assert [c.model_dump() for c in cands] == [c.model_dump() for c in random_case(random.Random(3))[2]]
+
+
+def test_rolling_window_cap():
+    assert pacing.max_in_window([0, 100, 3599, 3600, 7300]) == 3
+    assert pacing.max_in_window([]) == 0
+    cfg = load_config(overrides={"pacing": {"min_gap_s": 60, "max_ad_load_pct": 100}})
+    scenes = [scene(0, 0, 7200)]
+    cands = [cand(i, 100.0 + 120 * i, 0, 0, dec=good_dec()) for i in range(20)]  # 20 cuts in 40 min
+    out = pacing.apply(cands, scenes, 7200, cfg)
+    assert sum(c.status == "selected" for c in out) == cfg.pacing.max_breaks_per_hour
+    assert pacing.violations(out, 7200, cfg) == []

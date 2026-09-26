@@ -16,7 +16,7 @@ from app.taxonomy import tag_legend
 
 log = logging.getLogger(__name__)
 STAGE = "scenes"
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 
 class SceneOut(BaseModel):
@@ -69,7 +69,9 @@ def build_prompt(shots: list[Shot], speech: list[SpeechSegment], transcript: lis
         f"SENSITIVE TAGS (use exactly these values):\n{tag_legend()}",
         "TASK:\n"
         "1. Group consecutive shots into semantic scenes: a scene is one continuous dramatic unit — same "
-        "place, time and situation. A new scene starts when location, time, or the core situation changes. "
+        "place, time and situation. Start a new scene whenever the location, the time, the main activity, or "
+        "the core situation changes; scenes typically last 30 s – 3 min, so split long stretches at those "
+        "changes rather than merging them. "
         "Scenes must be contiguous, ordered and non-overlapping: the first scene starts at shot 0, each next "
         "scene starts at the shot right after the previous scene's last shot, and the last scene ends at "
         f"shot {len(shots) - 1}. Every shot belongs to exactly one scene.\n"

@@ -1,0 +1,7 @@
+# M10 hard filter (plain Python, before any AI).
+# A brand is blocked when any of its negative_contexts (lowercased) equals, or is listed here as a synonym of,
+# a sensitive tag present in the prev/next scene with p >= gates.sensitive_block_p.
+# Key = SensitiveTagEnum value; value = extra negative_context phrases that tag triggers.
+# Decision (Step 0): exact matches only — no synonyms. Contexts that don't literally equal a tag are handled by
+# the keyword check on scene activity/setting and by the semantic (Jev / Gemini fallback) filter.
+{}
