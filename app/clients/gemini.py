@@ -30,6 +30,18 @@ def _semaphore(n: int) -> threading.BoundedSemaphore:
         return _SEM
 
 
+_CLIENT: genai.Client | None = None
+
+
+def _shared_client() -> genai.Client:
+    """One process-wide SDK client: lazily creating one per call races and closes in-flight requests."""
+    global _CLIENT
+    with _SEM_LOCK:
+        if _CLIENT is None:
+            _CLIENT = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+        return _CLIENT
+
+
 def has_key() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY"))
 
@@ -39,13 +51,10 @@ class GeminiClient:
         self.cfg = cfg
         self.raw_dir = raw_dir
         self.sem = _semaphore(cfg.concurrency.gemini_max_parallel)
-        self._client: genai.Client | None = None
 
     @property
     def client(self) -> genai.Client:
-        if self._client is None:
-            self._client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-        return self._client
+        return _shared_client()
 
     def _call(self, what: str, fn):
         c = self.cfg.concurrency
