@@ -22,6 +22,8 @@ candidates:
   min_pause_s: 0.8
   clearance_s: 0.3
   edge_exclusion_s: 60        # effective = min(60, 0.05 * duration)
+  edge_exclusion_frac: 0.05
+  scene_boundary_tol_s: 0.5   # a cut within ±this of an M5 scene boundary is a scene boundary
 decide:
   cascade_confidence_below: 0.6
 gates:

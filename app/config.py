@@ -57,6 +57,8 @@ class CandidatesCfg(_Section):
     min_pause_s: float
     clearance_s: float
     edge_exclusion_s: float
+    edge_exclusion_frac: float
+    scene_boundary_tol_s: float
 
 
 class DecideCfg(_Section):

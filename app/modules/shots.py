@@ -24,7 +24,8 @@ def detect_shots(proxy_path: Path, duration_s: float) -> list[Shot]:
     return shots
 
 
-def run(meta: VideoMeta, cfg: Config, force: bool = False, timings: dict[str, float] | None = None) -> list[Shot]:
+def run(meta: VideoMeta, cfg: Config, force: bool = False,
+        timings: dict[str, float] | None = None) -> list[Shot]:
     key = section_hash(STAGE, cfg.shots, store.stage_digest(cfg.runs_dir, meta.sha256, "ingest"))
 
     def compute() -> list[Shot]:

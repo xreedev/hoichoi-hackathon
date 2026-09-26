@@ -65,4 +65,5 @@ def run(meta: VideoMeta, cfg: Config, force: bool = False,
         log.info("vad: %d speech segments", len(segs))
         return segs
 
-    return store.cached_stage(cfg.runs_dir, meta.sha256, STAGE, key, list[SpeechSegment], compute, force, timings)
+    return store.cached_stage(cfg.runs_dir, meta.sha256, STAGE, key, list[SpeechSegment], compute,
+                              force, timings)
