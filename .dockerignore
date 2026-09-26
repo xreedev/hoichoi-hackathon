@@ -1,0 +1,10 @@
+.git
+.env
+runs
+__pycache__
+**/__pycache__
+.pytest_cache
+.ruff_cache
+tests
+assets/*.mp4
+!assets/bhojon_bilashi.mp4

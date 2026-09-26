@@ -1,0 +1,35 @@
+name: Deploy to Hugging Face Space
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/adoring-pasteur-w30gy0]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    steps:
+      - name: Skip when HF_TOKEN is not configured
+        if: env.HF_TOKEN == ''
+        run: echo "HF_TOKEN secret not set; skipping deploy."
+      - uses: actions/checkout@v4
+        if: env.HF_TOKEN != ''
+      - uses: actions/setup-python@v5
+        if: env.HF_TOKEN != ''
+        with:
+          python-version: "3.11"
+      - name: Install deploy tools
+        if: env.HF_TOKEN != ''
+        run: pip install huggingface_hub gdown
+      - name: Fetch the dev sample video (not stored in git)
+        if: env.HF_TOKEN != ''
+        run: gdown 1E7VuKgpNvoDXW7L2jzgKJKgJ92JatNu- -O assets/bhojon_bilashi.mp4
+      - name: Deploy
+        if: env.HF_TOKEN != ''
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: python scripts/deploy_hf.py

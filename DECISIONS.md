@@ -29,3 +29,6 @@ One line per decision. **(you)** = your call, **(me)** = my call under "make the
 - (me) API keeps runs in memory; the pipeline runs in a background thread; SSE streams the run's event list. Re-match considers every brand in the current catalogue.
 - (me) Add brand / upload edits a working copy of the catalogue (`runs/_catalogue.json`); `assets/brands.json` is never modified.
 - (me) The UI is one static page, vanilla JS. The player reads our VMAP and plays the ad in a second <video> over the content, then seeks back to the exact offset (tested: +0.13 s).
+- (me) Docker: `python:3.11-slim` + ffmpeg + DejaVu font (for slate text). CPU torch is installed first from the PyTorch index; the app runs as uid 1000 on port 7860.
+- (me) Deploy goes through a GitHub Action (`.github/workflows/deploy-hf.yml`, which runs `scripts/deploy_hf.py`) using the `HF_TOKEN` / `GEMINI_API_KEY` / `SARVAM_API_KEY` repo secrets, so no token passes through chat. The Space gets code, catalogue and the dev sample only (never `mohanagar`).
+- (me) No baked cache: the Space's first run of a video is cold (a few minutes); repeat runs and re-match use the cache until the Space restarts.
