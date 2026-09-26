@@ -172,6 +172,45 @@ button:disabled { opacity: .4; cursor: default; }
 .stat-val  { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .stat-lbl  { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
+/* ── AD BREAK MAP ── */
+.break-map-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+                  padding: 20px; margin-bottom: var(--gap); }
+.break-map-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex;
+                   align-items: center; gap: 8px; }
+.break-map-title span { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+/* the horizontal episode bar */
+.ep-bar-wrap { position: relative; height: 80px; margin-bottom: 8px; }
+.ep-bar      { position: absolute; bottom: 0; left: 0; right: 0; height: 12px;
+               background: var(--border); border-radius: 6px; overflow: hidden; }
+.ep-seg      { position: absolute; height: 100%; }
+.ep-break-line { position: absolute; bottom: 0; transform: translateX(-50%);
+                 width: 3px; background: var(--amber); height: 20px; border-radius: 2px; }
+.ep-break-pin  { position: absolute; bottom: 20px; transform: translateX(-50%);
+                 display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+.ep-break-pin:hover .ep-pin-card { opacity: 1; transform: translateY(-2px); }
+.ep-pin-num  { width: 24px; height: 24px; border-radius: 50%; background: var(--amber); color: #000;
+               font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.ep-pin-time { font-size: 11px; font-weight: 600; color: var(--amber); font-variant-numeric: tabular-nums;
+               white-space: nowrap; }
+.ep-pin-brand { font-size: 10px; color: var(--muted); white-space: nowrap; max-width: 80px;
+                overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.ep-tick     { position: absolute; bottom: 0; transform: translateX(-50%);
+               font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums;
+               white-space: nowrap; padding-top: 16px; }
+
+/* break list below bar */
+.break-list  { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 16px; }
+.break-list-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+                   padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
+.break-list-item:hover, .break-list-item.active { border-color: var(--amber); }
+.bli-num     { font-size: 11px; color: var(--amber); font-weight: 700; margin-bottom: 2px; }
+.bli-time    { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.bli-brand   { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.bli-cat     { font-size: 11px; color: var(--muted); }
+.bli-reason  { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4;
+               display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
 /* ── PLAYER ── */
 .player-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
                overflow: hidden; margin-bottom: var(--gap); }
@@ -493,6 +532,21 @@ input:focus { border-color: var(--red); }
 
 <!-- RESULTS (hidden until done) -->
 <div id="results" class="hidden" style="margin-top:var(--gap)">
+
+  <!-- AD BREAK MAP — prominent, always first -->
+  <div class="break-map-card">
+    <div class="break-map-title">
+      📍 Ad Break Placements <span id="bm-count"></span>
+    </div>
+    <!-- horizontal episode timeline -->
+    <div class="ep-bar-wrap" id="ep-bar-wrap">
+      <!-- pins + bar injected by buildBreakMap() -->
+    </div>
+    <!-- time axis ticks -->
+    <div style="position:relative; height:20px" id="ep-ticks"></div>
+    <!-- break cards grid -->
+    <div class="break-list" id="break-list-grid"></div>
+  </div>
 
   <!-- summary strip -->
   <div class="stat-row">
@@ -1043,6 +1097,9 @@ async function loadResult() {
   // scrubber markers
   buildScrubberMarkers(res.meta.duration_s);
 
+  // prominent break map (top of results)
+  buildBreakMap(res);
+
   // timeline
   buildTimeline(res);
 
@@ -1257,6 +1314,104 @@ function highlightBreakCard(idx) {
   });
   const card = document.querySelectorAll('.break-card')[idx];
   if (card) card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+// ── prominent ad break map ──
+function buildBreakMap(res) {
+  const placements = res.placements || [];
+  const dur = res.meta?.duration_s || 1;
+
+  $('bm-count').textContent = `— ${placements.length} break${placements.length !== 1 ? 's' : ''}`;
+
+  // --- episode bar ---
+  const wrap = $('ep-bar-wrap');
+  wrap.innerHTML = `<div class="ep-bar"></div>`;
+
+  // coloured content segments between breaks
+  const bar = wrap.querySelector('.ep-bar');
+  const sortedBreaks = [...placements].sort((a, b) => a.t_s - b.t_s);
+  let prev = 0;
+  sortedBreaks.forEach((p, i) => {
+    const pct = (p.t_s / dur) * 100;
+    // content segment
+    const seg = document.createElement('div');
+    seg.className = 'ep-seg';
+    seg.style.cssText = `left:${(prev/dur)*100}%;width:${pct - (prev/dur)*100}%;background:var(--border);`;
+    bar.appendChild(seg);
+    prev = p.t_s;
+  });
+  // trailing content
+  const trail = document.createElement('div');
+  trail.className = 'ep-seg';
+  trail.style.cssText = `left:${(prev/dur)*100}%;right:0;background:var(--border);`;
+  bar.appendChild(trail);
+
+  // break lines + pins
+  sortedBreaks.forEach((p, i) => {
+    const pct = (p.t_s / dur) * 100;
+    const brand = p.brand_id || 'Ad';
+
+    // vertical line
+    const line = document.createElement('div');
+    line.className = 'ep-break-line';
+    line.style.left = `${pct}%`;
+    wrap.appendChild(line);
+
+    // pin (number + time + brand)
+    const pin = document.createElement('div');
+    pin.className = 'ep-break-pin';
+    pin.style.left = `${pct}%`;
+    pin.innerHTML = `
+      <div class="ep-pin-num">${i+1}</div>
+      <div class="ep-pin-time">${fmt(p.t_s)}</div>
+      <div class="ep-pin-brand">${esc(brand)}</div>`;
+    pin.title = `Break ${i+1}: ${brand} at ${fmt(p.t_s)}`;
+    pin.onclick = () => {
+      const vid = $('vid-content');
+      if (vid.src) { vid.currentTime = Math.max(0, p.t_s - 2); vid.play(); }
+      document.querySelectorAll('.break-list-item').forEach(el => el.classList.remove('active'));
+      const item = document.getElementById(`bli-${i}`);
+      if (item) { item.classList.add('active'); item.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+    };
+    wrap.appendChild(pin);
+  });
+
+  // time axis ticks (5 evenly spaced)
+  const ticksEl = $('ep-ticks');
+  ticksEl.innerHTML = '';
+  const TICK_N = 6;
+  for (let i = 0; i <= TICK_N; i++) {
+    const t = (dur / TICK_N) * i;
+    const tick = document.createElement('div');
+    tick.className = 'ep-tick';
+    tick.style.left = `${(t/dur)*100}%`;
+    tick.style.position = 'absolute';
+    tick.textContent = fmt(t);
+    ticksEl.appendChild(tick);
+  }
+
+  // break list grid
+  const grid = $('break-list-grid');
+  grid.innerHTML = '';
+  sortedBreaks.forEach((p, i) => {
+    const brand = p.brand_id || 'Ad';
+    const reason = p.brand_reason || '';
+    const item = document.createElement('div');
+    item.className = 'break-list-item';
+    item.id = `bli-${i}`;
+    item.innerHTML = `
+      <div class="bli-num">BREAK ${i+1}</div>
+      <div class="bli-time">${fmt(p.t_s)}</div>
+      <div class="bli-brand">${esc(brand)}</div>
+      ${reason ? `<div class="bli-reason">${esc(reason)}</div>` : ''}`;
+    item.onclick = () => {
+      const vid = $('vid-content');
+      if (vid.src) { vid.currentTime = Math.max(0, p.t_s - 2); vid.play(); }
+      document.querySelectorAll('.break-list-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+    };
+    grid.appendChild(item);
+  });
 }
 
 // ── break cards ──
