@@ -83,30 +83,56 @@ button:disabled { opacity: .4; cursor: default; }
 /* run button row */
 .run-row { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 
-/* ── STEPPER ── */
-.stepper { display: flex; gap: 0; margin-top: 8px; }
-.step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
-.step:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; right: -50%;
-                                 height: 2px; background: var(--border); z-index: 0; }
-.step.done::after  { background: var(--green); }
-.step.active::after { background: var(--border); }
-.step-icon { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
-             background: var(--card); display: flex; align-items: center; justify-content: center;
-             z-index: 1; position: relative; transition: all .2s; }
-.step.done  .step-icon { border-color: var(--green); background: #0d2b1d; }
-.step.active .step-icon { border-color: var(--amber); background: #2b1f0a; }
-.step.error  .step-icon { border-color: var(--red);   background: #2b0e0e; }
-.step-label { font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center; }
-.step.done  .step-label, .step.active .step-label { color: var(--text); }
-.step-count { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.spin { animation: spin .8s linear infinite; }
+/* ── PROGRESS ── */
+.prog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.prog-title  { font-size: 18px; font-weight: 600; }
+.prog-pct    { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--amber); }
+.prog-step-of { font-size: 12px; color: var(--muted); text-align: right; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.prog-bar-wrap { margin-bottom: 20px; }
+.prog-bar-bg { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.prog-bar-fill { height: 6px; background: linear-gradient(90deg, var(--amber), var(--green));
+                 border-radius: 4px; width: 0%; transition: width .4s ease; }
+
+.stage-list { display: flex; flex-direction: column; gap: 6px; }
+.stage-row  { display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+              border: 1px solid transparent; border-radius: 10px; transition: all .2s; }
+.stage-row.pending { opacity: .35; }
+.stage-row.active  { background: #1a1f10; border-color: var(--amber); opacity: 1; }
+.stage-row.done    { opacity: .75; }
+.stage-row.error   { background: #1f1010; border-color: var(--red); opacity: 1; }
+
+.stage-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+              justify-content: center; flex-shrink: 0; background: var(--border); font-size: 15px; }
+.stage-row.active .stage-icon { background: rgba(245,165,36,.15); }
+.stage-row.done   .stage-icon { background: rgba(61,214,140,.12); }
+.stage-row.error  .stage-icon { background: rgba(229,72,77,.12); }
+
+.stage-body { flex: 1; min-width: 0; }
+.stage-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.stage-tool { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 20px;
+              background: var(--border); color: var(--muted); }
+.stage-row.active .stage-tool { background: rgba(245,165,36,.2); color: var(--amber); }
+.stage-row.done   .stage-tool { background: rgba(61,214,140,.15); color: var(--green); }
+.stage-sub { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap;
+             overflow: hidden; text-overflow: ellipsis; }
+.stage-row.active .stage-sub { color: var(--text); }
+
+.stage-right { flex-shrink: 0; text-align: right; }
+.stage-time  { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--green); }
+.stage-count { font-size: 11px; color: var(--muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+/* parallel group bracket */
+.parallel-group { position: relative; padding-left: 12px; margin: 4px 0; }
+.parallel-group::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+                           width: 3px; background: var(--border); border-radius: 2px; }
+.parallel-label { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                  letter-spacing: .06em; margin-bottom: 4px; padding-left: 8px; }
+
+.spin { animation: spin .9s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 700px) {
-  .stepper { flex-direction: column; gap: 8px; align-items: flex-start; }
-  .step { flex-direction: row; gap: 10px; align-items: center; flex: none; width: 100%; }
-  .step::after { display: none; }
-  .step-label { margin-top: 0; text-align: left; }
-}
+.pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+
 .step-err-msg { color: var(--red); font-size: 13px; margin-top: 12px; }
 
 /* ── SUMMARY STRIP ── */
@@ -279,54 +305,119 @@ input:focus { border-color: var(--red); }
   </div>
 </div>
 
-<!-- PROGRESS STEPPER (hidden until run starts) -->
+<!-- PROGRESS (hidden until run starts) -->
 <div id="progress-card" class="card hidden" style="margin-top:var(--gap)">
-  <div class="card-title">Processing</div>
-  <div class="stepper" id="stepper">
-    <div class="step pending" data-key="upload">
-      <div class="step-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+  <div class="prog-header">
+    <div class="prog-title">Processing episode</div>
+    <div style="text-align:right">
+      <div class="prog-pct" id="prog-pct">0%</div>
+      <div class="prog-step-of" id="prog-stepof">Step 0 of 11</div>
+    </div>
+  </div>
+  <div class="prog-bar-wrap">
+    <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-bar"></div></div>
+  </div>
+  <div class="stage-list" id="stage-list">
+    <!-- ingest -->
+    <div class="stage-row pending" id="sr-ingest">
+      <div class="stage-icon">🎬</div>
+      <div class="stage-body">
+        <div class="stage-name">Ingest &amp; transcode <span class="stage-tool">ffmpeg</span></div>
+        <div class="stage-sub" id="ss-ingest">Extracting proxy + 16 kHz audio</div>
       </div>
-      <div>
-        <div class="step-label">Upload</div>
-        <div class="step-count" id="sc-upload"></div>
+      <div class="stage-right"><div class="stage-time" id="st-ingest"></div><div class="stage-count" id="sc-ingest"></div></div>
+    </div>
+    <!-- parallel group -->
+    <div class="parallel-group">
+      <div class="parallel-label">Parallel analysis</div>
+      <div class="stage-list">
+        <div class="stage-row pending" id="sr-shots">
+          <div class="stage-icon">✂️</div>
+          <div class="stage-body">
+            <div class="stage-name">Shot detection <span class="stage-tool">PySceneDetect</span></div>
+            <div class="stage-sub" id="ss-shots">Adaptive detector on proxy</div>
+          </div>
+          <div class="stage-right"><div class="stage-time" id="st-shots"></div><div class="stage-count" id="sc-shots"></div></div>
+        </div>
+        <div class="stage-row pending" id="sr-vad">
+          <div class="stage-icon">🎙️</div>
+          <div class="stage-body">
+            <div class="stage-name">Speech detection <span class="stage-tool">Silero VAD</span></div>
+            <div class="stage-sub" id="ss-vad">Finding speech segments in audio</div>
+          </div>
+          <div class="stage-right"><div class="stage-time" id="st-vad"></div><div class="stage-count" id="sc-vad"></div></div>
+        </div>
+        <div class="stage-row pending" id="sr-asr">
+          <div class="stage-icon">📝</div>
+          <div class="stage-body">
+            <div class="stage-name">Transcription <span class="stage-tool" id="tool-asr">Sarvam ASR</span></div>
+            <div class="stage-sub" id="ss-asr">Generating Bengali transcript</div>
+          </div>
+          <div class="stage-right"><div class="stage-time" id="st-asr"></div><div class="stage-count" id="sc-asr"></div></div>
+        </div>
+        <div class="stage-row pending" id="sr-upload">
+          <div class="stage-icon">☁️</div>
+          <div class="stage-body">
+            <div class="stage-name">Upload video <span class="stage-tool">Gemini Files API</span></div>
+            <div class="stage-sub" id="ss-upload">Sending proxy to Gemini for video analysis</div>
+          </div>
+          <div class="stage-right"><div class="stage-time" id="st-upload"></div><div class="stage-count" id="sc-upload"></div></div>
+        </div>
       </div>
     </div>
-    <div class="step pending" data-key="shots">
-      <div class="step-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="8" y1="2" x2="8" y2="22"/><line x1="16" y1="2" x2="16" y2="22"/></svg>
+    <!-- scenes -->
+    <div class="stage-row pending" id="sr-scenes">
+      <div class="stage-icon">🧠</div>
+      <div class="stage-body">
+        <div class="stage-name">Scene understanding <span class="stage-tool">Gemini 3.8 Flash</span></div>
+        <div class="stage-sub" id="ss-scenes">AI analysing mood, tension, sensitive content per scene</div>
       </div>
-      <div>
-        <div class="step-label">Scene cuts</div>
-        <div class="step-count" id="sc-shots"></div>
-      </div>
+      <div class="stage-right"><div class="stage-time" id="st-scenes"></div><div class="stage-count" id="sc-scenes"></div></div>
     </div>
-    <div class="step pending" data-key="vad">
-      <div class="step-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+    <!-- candidates -->
+    <div class="stage-row pending" id="sr-candidates">
+      <div class="stage-icon">📍</div>
+      <div class="stage-body">
+        <div class="stage-name">Break candidates <span class="stage-tool">Rule-based</span></div>
+        <div class="stage-sub" id="ss-candidates">Finding silence + shot-cut intersections</div>
       </div>
-      <div>
-        <div class="step-label">Speech</div>
-        <div class="step-count" id="sc-vad"></div>
-      </div>
+      <div class="stage-right"><div class="stage-time" id="st-candidates"></div><div class="stage-count" id="sc-candidates"></div></div>
     </div>
-    <div class="step pending" data-key="scenes">
-      <div class="step-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <!-- decide -->
+    <div class="stage-row pending" id="sr-decide">
+      <div class="stage-icon">⚖️</div>
+      <div class="stage-body">
+        <div class="stage-name">Decision scoring <span class="stage-tool" id="tool-decide">TypeSafe Jev</span></div>
+        <div class="stage-sub" id="ss-decide">Evaluating each candidate with AI reasoning</div>
       </div>
-      <div>
-        <div class="step-label">Scene understanding (AI)</div>
-        <div class="step-count" id="sc-scenes"></div>
-      </div>
+      <div class="stage-right"><div class="stage-time" id="st-decide"></div><div class="stage-count" id="sc-decide"></div></div>
     </div>
-    <div class="step pending" data-key="pacing">
-      <div class="step-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <!-- pacing -->
+    <div class="stage-row pending" id="sr-pacing">
+      <div class="stage-icon">⏱️</div>
+      <div class="stage-body">
+        <div class="stage-name">Pacing &amp; safety gates <span class="stage-tool">Rule-based</span></div>
+        <div class="stage-sub" id="ss-pacing">6/hr cap · 420 s gap · 15% ad load max</div>
       </div>
-      <div>
-        <div class="step-label">Breaks &amp; brands</div>
-        <div class="step-count" id="sc-pacing"></div>
+      <div class="stage-right"><div class="stage-time" id="st-pacing"></div><div class="stage-count" id="sc-pacing"></div></div>
+    </div>
+    <!-- brands -->
+    <div class="stage-row pending" id="sr-brands">
+      <div class="stage-icon">🏷️</div>
+      <div class="stage-body">
+        <div class="stage-name">Brand matching <span class="stage-tool">Gemini + TypeSafe</span></div>
+        <div class="stage-sub" id="ss-brands">Semantic negative-context filter → dynamic ranking</div>
       </div>
+      <div class="stage-right"><div class="stage-time" id="st-brands"></div><div class="stage-count" id="sc-brands"></div></div>
+    </div>
+    <!-- manifest -->
+    <div class="stage-row pending" id="sr-manifest">
+      <div class="stage-icon">📄</div>
+      <div class="stage-body">
+        <div class="stage-name">VMAP manifest <span class="stage-tool">VAST 4.2</span></div>
+        <div class="stage-sub" id="ss-manifest">Writing VMAP 1.0.1 + inline VAST + debug.json</div>
+      </div>
+      <div class="stage-right"><div class="stage-time" id="st-manifest"></div><div class="stage-count" id="sc-manifest"></div></div>
     </div>
   </div>
   <div id="step-error" class="step-err-msg hidden"></div>
@@ -618,13 +709,26 @@ async function startRun() {
   pollStatus();
 }
 
-// ── polling ──
-const STAGE_MAP = {
-  ingest: 'upload', shots: 'shots', vad: 'vad',
-  transcribe: 'vad', scenes: 'scenes', candidates: 'pacing',
-  pacing: 'pacing', brands: 'pacing', manifest: 'pacing'
+// ── stage config ──
+const TOTAL_STAGES = 11;
+const STAGE_CFG = {
+  ingest:     { label: 'Ingest & transcode',   tool: 'ffmpeg',            icon: '🎬' },
+  shots:      { label: 'Shot detection',        tool: 'PySceneDetect',     icon: '✂️' },
+  vad:        { label: 'Speech detection',      tool: 'Silero VAD',        icon: '🎙️' },
+  asr:        { label: 'Transcription',         tool: 'Sarvam ASR',        icon: '📝' },
+  upload:     { label: 'Upload video',          tool: 'Gemini Files API',  icon: '☁️' },
+  scenes:     { label: 'Scene understanding',   tool: 'Gemini 3.8 Flash',  icon: '🧠' },
+  candidates: { label: 'Break candidates',      tool: 'Rule-based',        icon: '📍' },
+  decide:     { label: 'Decision scoring',      tool: 'TypeSafe Jev',      icon: '⚖️' },
+  pacing:     { label: 'Pacing & safety gates', tool: 'Rule-based',        icon: '⏱️' },
+  brands:     { label: 'Brand matching',        tool: 'Gemini + TypeSafe', icon: '🏷️' },
+  manifest:   { label: 'VMAP manifest',         tool: 'VAST 4.2',          icon: '📄' },
 };
+// weight each stage by typical cost
+const STAGE_WEIGHT = {ingest:1,shots:1,vad:1,asr:1,upload:1,scenes:3,candidates:1,decide:1,pacing:1,brands:1,manifest:1};
+const TOTAL_WEIGHT = Object.values(STAGE_WEIGHT).reduce((a,b)=>a+b,0);
 
+// ── polling ──
 async function pollStatus() {
   if (!RUN_ID) return;
   let data;
@@ -647,56 +751,117 @@ async function pollStatus() {
 }
 
 let _seenEvents = 0;
+let _doneWeight = 0;
+let _doneCount  = 0;
+
 function processEvents(events) {
   events.slice(_seenEvents).forEach(e => {
     _seenEvents++;
-    if (e.event === 'stage_done') {
-      const key = STAGE_MAP[e.data.stage] || e.data.stage;
-      setStep(key, 'done', e.data.summary || '');
-      // mark next step active
-      const order = ['upload','shots','vad','scenes','pacing'];
-      const idx = order.indexOf(key);
-      if (idx >= 0 && idx < order.length - 1) setStep(order[idx + 1], 'active');
+    const stage = e.data?.stage;
+    if (e.event === 'stage_start' && stage) {
+      activateStage(stage);
+    } else if (e.event === 'stage_done' && stage) {
+      completeStage(stage, e.data.seconds, e.data.summary || '');
+      _doneWeight += STAGE_WEIGHT[stage] || 1;
+      _doneCount++;
+      updateProgress();
+    } else if (e.event === 'warning' && stage) {
+      const sub = $(`ss-${stage}`);
+      if (sub) sub.textContent = '⚠ ' + (e.data.message || '');
     }
   });
 }
 
-// ── step helpers ──
-function setStep(key, state, label) {
-  const el = document.querySelector(`.step[data-key="${key}"]`);
-  if (!el) return;
-  el.className = 'step ' + state;
-  const icon = el.querySelector('.step-icon');
-  if (state === 'active') {
-    icon.innerHTML = `<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-dasharray="30" stroke-dashoffset="10"/></svg>`;
-  } else if (state === 'done') {
-    icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-  } else if (state === 'error') {
-    icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  }
-  if (label !== undefined) {
-    const sc = el.querySelector('.step-count');
-    if (sc) sc.textContent = label;
-  }
+function updateProgress() {
+  const pct = Math.round(_doneWeight / TOTAL_WEIGHT * 100);
+  $('prog-pct').textContent = pct + '%';
+  $('prog-bar').style.width = pct + '%';
+  $('prog-stepof').textContent = `Step ${_doneCount} of ${TOTAL_STAGES}`;
+}
+
+function activateStage(stage) {
+  const row = $(`sr-${stage}`);
+  if (!row) return;
+  row.className = 'stage-row active';
+  const icon = row.querySelector('.stage-icon');
+  icon.innerHTML = `<span class="spin" style="font-size:18px">⟳</span>`;
+  const sub = $(`ss-${stage}`);
+  if (sub && STAGE_CFG[stage]) sub.textContent = activeHint(stage);
+}
+
+function activeHint(stage) {
+  const hints = {
+    ingest:     'ffmpeg: transcoding to 360p proxy, extracting 16 kHz WAV…',
+    shots:      'PySceneDetect adaptive detector scanning frames…',
+    vad:        'Silero VAD: detecting speech vs silence…',
+    asr:        'Sarvam saaras:v3 → Bengali transcript…',
+    upload:     'Uploading proxy to Gemini Files API…',
+    scenes:     'Gemini 3.8 Flash: analysing mood, tension, sensitive tags…',
+    candidates: 'Filtering shot cuts: silence ≥ 0.3 s, not mid-speech…',
+    decide:     'TypeSafe Jev / Gemini: scoring each candidate…',
+    pacing:     'Applying 6/hr cap, 420 s gap, 15% ad load limit…',
+    brands:     'Semantic negative-context filter → dynamic ranking…',
+    manifest:   'Writing VMAP 1.0.1 + inline VAST 4.2 + debug.json…',
+  };
+  return hints[stage] || 'Processing…';
+}
+
+function completeStage(stage, secs, summary) {
+  const row = $(`sr-${stage}`);
+  if (!row) return;
+  row.className = 'stage-row done';
+  const icon = row.querySelector('.stage-icon');
+  if (STAGE_CFG[stage]) icon.textContent = STAGE_CFG[stage].icon;
+  const st = $(`st-${stage}`);
+  if (st) st.textContent = secs ? `${secs.toFixed(1)}s` : '';
+  const sc = $(`sc-${stage}`);
+  if (sc) sc.textContent = summary;
+  const sub = $(`ss-${stage}`);
+  if (sub) sub.textContent = summary || doneHint(stage);
+}
+
+function doneHint(stage) {
+  const hints = {
+    ingest:     'Proxy + audio ready',
+    shots:      'Shot boundaries detected',
+    vad:        'Speech segments mapped',
+    asr:        'Transcript ready',
+    upload:     'Video on Gemini Files API',
+    scenes:     'Scenes analysed',
+    candidates: 'Candidate cuts identified',
+    decide:     'Candidates scored',
+    pacing:     'Breaks selected',
+    brands:     'Brands matched',
+    manifest:   'VMAP written',
+  };
+  return hints[stage] || 'Done';
 }
 
 function resetProgress() {
   _seenEvents = 0;
-  ['upload','shots','vad','scenes','pacing'].forEach(k => {
-    const el = document.querySelector(`.step[data-key="${k}"]`);
-    if (!el) return;
-    el.className = 'step pending';
-    el.querySelector('.step-icon').innerHTML = '';
-    const sc = el.querySelector('.step-count'); if (sc) sc.textContent = '';
+  _doneWeight = 0;
+  _doneCount  = 0;
+  $('prog-pct').textContent = '0%';
+  $('prog-bar').style.width = '0%';
+  $('prog-stepof').textContent = `Step 0 of ${TOTAL_STAGES}`;
+  Object.keys(STAGE_CFG).forEach(stage => {
+    const row = $(`sr-${stage}`);
+    if (!row) return;
+    row.className = 'stage-row pending';
+    const icon = row.querySelector('.stage-icon');
+    if (STAGE_CFG[stage]) icon.textContent = STAGE_CFG[stage].icon;
+    const t = $(`st-${stage}`); if (t) t.textContent = '';
+    const c = $(`sc-${stage}`); if (c) c.textContent = '';
+    const s = $(`ss-${stage}`); if (s && STAGE_CFG[stage]) s.textContent = '';
   });
   $('step-error').classList.add('hidden');
   $('retry-btn').classList.add('hidden');
 }
 
 function showStepError(msg) {
-  ['upload','shots','vad','scenes','pacing'].forEach(k => {
-    const el = document.querySelector(`.step[data-key="${k}"]`);
-    if (el && el.classList.contains('active')) setStep(k, 'error');
+  Object.keys(STAGE_CFG).forEach(stage => {
+    const row = $(`sr-${stage}`);
+    if (row && row.classList.contains('active')) row.className = 'stage-row error';
   });
   $('step-error').textContent = msg;
   $('step-error').classList.remove('hidden');
