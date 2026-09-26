@@ -247,8 +247,8 @@ button:disabled { opacity: .4; cursor: default; }
 .timeline-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
                  padding: 16px; margin-bottom: var(--gap); overflow-x: auto; }
 .timeline-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-.tl-wrap { position: relative; height: 52px; min-width: 300px; }
-.tl-scenes { position: absolute; top: 16px; left: 0; right: 0; height: 28px; }
+.tl-wrap { position: relative; height: 80px; min-width: 300px; }
+.tl-scenes { position: absolute; top: 48px; left: 0; right: 0; height: 28px; }
 .tl-scene  { position: absolute; height: 100%; border-radius: 3px; cursor: pointer; opacity: .85;
              transition: opacity .1s; }
 .tl-scene:hover { opacity: 1; }
@@ -256,12 +256,18 @@ button:disabled { opacity: .4; cursor: default; }
              background: repeating-linear-gradient(45deg, transparent, transparent 3px,
              rgba(255,107,107,.35) 3px, rgba(255,107,107,.35) 6px); }
 .tl-pin    { position: absolute; top: 0; transform: translateX(-50%);
-             display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 5; }
-.tl-pin-diamond { width: 14px; height: 14px; background: var(--amber);
+             display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 5;
+             width: max-content; }
+.tl-pin-label { display: flex; flex-direction: column; align-items: center; margin-bottom: 3px;
+                background: rgba(11,13,18,.85); border: 1px solid var(--amber);
+                border-radius: 6px; padding: 3px 7px; white-space: nowrap; }
+.tl-pin-brand { font-size: 10px; font-weight: 700; color: var(--amber); }
+.tl-pin-time  { font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tl-pin-diamond { width: 18px; height: 18px; background: var(--amber);
                   clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
-                  display: flex; align-items: center; justify-content: center; font-size: 8px;
-                  font-weight: 700; color: #000; }
-.tl-cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.6);
+                  display: flex; align-items: center; justify-content: center; font-size: 9px;
+                  font-weight: 800; color: #000; }
+.tl-cursor { position: absolute; top: 48px; bottom: 0; width: 2px; background: rgba(255,255,255,.6);
              pointer-events: none; z-index: 6; }
 .tl-shield { position: absolute; top: 0; right: 2px; font-size: 9px; }
 .tl-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
@@ -587,7 +593,7 @@ input:focus { border-color: var(--red); }
 
   <!-- timeline -->
   <div class="timeline-card">
-    <div class="timeline-label">Scene timeline — hover for details, click a pin to jump</div>
+    <div class="timeline-label">Scene timeline — ad break pins show brand · click any pin or scene to jump to that moment</div>
     <div class="tl-wrap" id="tl-wrap">
       <div class="tl-scenes" id="tl-scenes"></div>
       <div class="tl-cursor" id="tl-cursor" style="left:0"></div>
@@ -1288,17 +1294,26 @@ function buildTimeline(res) {
       ${sens.length ? `<span class="tl-shield">🛡</span>` : ''}
       <div class="tl-tooltip">${tooltip}</div>
     `;
-    sw.addEventListener('click', () => { vid.currentTime = s.start_s; vid.play(); });
+    sw.addEventListener('click', () => {
+      vid.currentTime = s.start_s; vid.play();
+      $('vid-content').closest('.player-card')?.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
     scenes_el.appendChild(sw);
   });
 
-  // pins above bar
+  // pins above bar — with brand label
   res.placements.forEach((p, i) => {
+    const brand = p.brand_id || 'Ad';
     const pin = document.createElement('div');
     pin.className = 'tl-pin';
     pin.style.left = pct(p.t_s);
-    pin.innerHTML = `<div class="tl-pin-diamond">${i + 1}</div>`;
-    pin.title = `Break ${i + 1} at ${fmt(p.t_s)}`;
+    pin.innerHTML = `
+      <div class="tl-pin-label">
+        <span class="tl-pin-brand">${esc(brand)}</span>
+        <span class="tl-pin-time">${fmt(p.t_s)}</span>
+      </div>
+      <div class="tl-pin-diamond">${i + 1}</div>`;
+    pin.title = `Break ${i + 1} · ${brand} at ${fmt(p.t_s)}`;
     pin.addEventListener('click', () => {
       vid.currentTime = Math.max(0, p.t_s - 5);
       vid.play();
