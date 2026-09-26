@@ -1,0 +1,20 @@
+[project]
+name = "hoichoi-adbreaks"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "live: hits real external APIs (deselect with -m 'not live')",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["runs", "assets"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

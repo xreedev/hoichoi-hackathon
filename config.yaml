@@ -1,0 +1,59 @@
+models:
+  scene_video: gemini-3.8-flash
+  text: gemini-3.8-flash
+  asr_fallback: gemini-3.5-transcribe
+  sarvam_asr: "saaras:v3"
+  jev: jev-latest
+  vjepa: facebook/vjepa2-vitl-fpc64-256
+flags:
+  use_sarvam: true
+  use_jev: true          # auto-false if TYPESAFE_API_KEY missing → Gemini fallback decider
+  use_vjepa: false
+ingest:
+  proxy_height: 360
+  audio_sr: 16000
+shots:
+  detector: adaptive
+vad:
+  threshold: 0.5
+  min_silence_duration_ms: 300
+  min_speech_duration_ms: 250
+candidates:
+  min_pause_s: 0.8
+  clearance_s: 0.3
+  edge_exclusion_s: 60        # effective = min(60, 0.05 * duration)
+decide:
+  cascade_confidence_below: 0.6
+gates:
+  sensitive_block_p: 0.10     # block if P(any sensitive tag) > this, in prev OR next scene
+  emotional_peak_reject_p: 0.6
+  cliffhanger_reject: true
+  negative_context_noul_block_p: 0.10
+scoring_weights:              # score = Σ w_i * feature_i, features normalised 0–1
+  pause_len: 0.25
+  is_scene_boundary: 0.25
+  ends_scene_p: 0.20
+  break_quality: 0.20
+  low_tension_prev: 0.10
+  visual_change: 0.0          # set to 0.10 and rescale others only when use_vjepa=true
+pacing:                        # §5 defaults (no handbook values supplied)
+  max_breaks_per_hour: 6
+  min_gap_s: 420
+  max_ad_load_pct: 15
+  default_ad_duration_s: 15
+concurrency:
+  gemini_max_parallel: 2       # free tier; raise only if I say so
+  jev_max_parallel: 8
+  retry_max_attempts: 5
+  retry_base_delay_s: 2
+timeouts:                      # per-call client timeouts (seconds)
+  gemini_text_s: 120
+  gemini_video_s: 1200
+  gemini_file_active_s: 600
+  sarvam_job_s: 1800
+  sarvam_poll_s: 5
+  jev_s: 30
+paths:
+  runs_dir: runs
+  catalogue: assets/brands.json
+  synonyms: config/synonyms.yaml
