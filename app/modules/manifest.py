@@ -37,20 +37,27 @@ def _escape_drawtext(text: str) -> str:
 
 
 def make_slate(brand: Brand, duration_s: float, out_dir: Path) -> Path:
-    """Solid-colour slate with the (synthetic) brand name, plus a silent audio track."""
+    """Solid-colour slate with a silent audio track. Text overlay attempted; skipped if fontconfig unavailable."""
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{brand.id}_{duration_s:g}s.mp4"
     if out.exists():
         return out
     tmp = out.with_suffix(".tmp.mp4")
+    colour = slate_colour(brand.id)
+    common = ["ffmpeg", "-y", "-v", "error",
+              "-f", "lavfi", "-i", f"color=c={colour}:s={SLATE_W}x{SLATE_H}:d={duration_s}:r=25",
+              "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+              "-t", str(duration_s), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest"]
+    # try with drawtext; fall back to plain colour slate if fontconfig missing (Windows)
     text = _escape_drawtext(brand.name)
-    media.run(["ffmpeg", "-y", "-v", "error",
-               "-f", "lavfi", "-i", f"color=c={slate_colour(brand.id)}:s={SLATE_W}x{SLATE_H}:d={duration_s}:r=25",
-               "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
-               "-vf", f"drawtext=text='{text}':fontcolor=white:fontsize=96:borderw=4:bordercolor=black"
-                      ":x=(w-text_w)/2:y=(h-text_h)/2",
-               "-t", str(duration_s), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest",
-               str(tmp)])
+    vf = (f"drawtext=text='{text}':fontcolor=white:fontsize=96:borderw=4:bordercolor=black"
+          ":x=(w-text_w)/2:y=(h-text_h)/2")
+    try:
+        media.run(common[:-1] + ["-vf", vf, "-shortest", str(tmp)])
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        media.run(common + [str(tmp)])
     tmp.rename(out)
     return out
 
