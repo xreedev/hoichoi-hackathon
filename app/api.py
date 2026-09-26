@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import json
+import re
 import shutil
+import subprocess
 import threading
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -79,11 +82,92 @@ def create_app(cfg: Config) -> FastAPI:
         tmp.replace(catalogue())
         return {"brands": len(brands)}
 
-    # ---- runs --------------------------------------------------------------------------------------------
-    @app.get("/api/samples")
-    def samples() -> list[dict[str, str]]:
-        return [{"id": p.stem, "name": p.name} for p in sorted(assets.glob("*.mp4"))]
+    # ---- samples -----------------------------------------------------------------------------------------
+    _THUMB_DIR = cfg.runs_dir / "_thumbs"
 
+    def _duration(path: Path) -> float:
+        try:
+            out = subprocess.check_output(
+                ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(path)],
+                stderr=subprocess.DEVNULL)
+            return float(json.loads(out)["format"]["duration"])
+        except Exception:
+            return 0.0
+
+    def _has_cached_run(stem: str) -> bool:
+        for p in cfg.runs_dir.glob("*/debug.json"):
+            try:
+                meta = json.loads(p.read_text()).get("meta", {})
+                if Path(meta.get("src_path", "")).stem == stem:
+                    return True
+            except Exception:
+                pass
+        return False
+
+    def _title(stem: str) -> str:
+        return re.sub(r"[_\-]+", " ", stem).title()
+
+    @app.get("/api/samples")
+    def samples() -> list[dict[str, Any]]:
+        result = []
+        for ext in ("*.mp4", "*.mov", "*.mkv"):
+            for p in sorted(assets.glob(ext)):
+                result.append({
+                    "id": p.stem, "title": _title(p.stem),
+                    "duration_s": _duration(p), "has_cached_run": _has_cached_run(p.stem),
+                })
+        return result
+
+    @app.get("/api/samples/{sid}/thumb.jpg")
+    def sample_thumb(sid: str) -> Response:
+        _THUMB_DIR.mkdir(parents=True, exist_ok=True)
+        thumb = _THUMB_DIR / f"{sid}.jpg"
+        if not thumb.exists():
+            candidates = list(assets.glob(f"{sid}.*"))
+            if not candidates:
+                raise HTTPException(404, f"sample {sid} not found")
+            src = candidates[0]
+            t = max(0.0, _duration(src) * 0.10)
+            subprocess.run(
+                ["ffmpeg", "-ss", str(t), "-i", str(src), "-vframes", "1",
+                 "-vf", "scale=320:-2", "-q:v", "5", str(thumb), "-y"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not thumb.exists():
+            raise HTTPException(500, "thumbnail generation failed")
+        return Response(thumb.read_bytes(), media_type="image/jpeg")
+
+    # ---- chunked upload ----------------------------------------------------------------------------------
+    _uploads: dict[str, dict[str, Any]] = {}
+
+    @app.post("/api/uploads/start")
+    async def upload_start(request: Request) -> dict[str, str]:
+        body = await request.json()
+        upload_id = uuid.uuid4().hex[:8]
+        up_dir = cfg.runs_dir / "_uploads"
+        up_dir.mkdir(exist_ok=True)
+        filename = Path(body.get("filename", "video.mp4")).name
+        path = up_dir / f"{upload_id}_{filename}"
+        path.write_bytes(b"")
+        _uploads[upload_id] = {"path": path, "total": int(body.get("size", 0)), "received": 0}
+        return {"upload_id": upload_id}
+
+    @app.post("/api/uploads/{uid}/chunk")
+    async def upload_chunk(uid: str, request: Request) -> dict[str, Any]:
+        if uid not in _uploads:
+            raise HTTPException(404, "unknown upload")
+        info = _uploads[uid]
+        chunk = await request.body()
+        with info["path"].open("ab") as f:
+            f.write(chunk)
+        info["received"] += len(chunk)
+        return {"received": info["received"]}
+
+    @app.get("/api/runs/{rid}/status")
+    def run_status(rid: str) -> dict[str, Any]:
+        run = get_run(rid)
+        return {"run_id": rid, "status": run.status, "error": run.error, "events": list(run.events)}
+
+    # ---- runs --------------------------------------------------------------------------------------------
     def work(run: Run) -> None:
         def emit(event: str, data: dict[str, Any]) -> None:
             if event == "done":
@@ -101,22 +185,26 @@ def create_app(cfg: Config) -> FastAPI:
 
     @app.post("/api/runs")
     async def create_run(video: UploadFile | None = File(None), sample_id: str | None = Form(None),
+                         upload_id: str | None = Form(None),
                          brand_ids: str | None = Form(None), max_breaks_per_hour: int | None = Form(None),
                          min_gap_s: float | None = Form(None), max_ad_load_pct: float | None = Form(None)
                          ) -> dict[str, str]:
         rid = uuid.uuid4().hex[:8]
-        if video is not None and video.filename:
+        if upload_id and upload_id in _uploads:
+            path = _uploads[upload_id]["path"]
+        elif video is not None and video.filename:
             up = cfg.runs_dir / "_uploads"
             up.mkdir(exist_ok=True)
             path = up / f"{rid}_{Path(video.filename).name}"
             with path.open("wb") as f:
                 shutil.copyfileobj(video.file, f)
         elif sample_id:
-            path = assets / f"{Path(sample_id).name}.mp4"
-            if not path.exists():
+            candidates = list(assets.glob(f"{Path(sample_id).stem}.*"))
+            if not candidates:
                 raise HTTPException(404, f"unknown sample {sample_id}")
+            path = candidates[0]
         else:
-            raise HTTPException(422, "send a video file or a sample_id")
+            raise HTTPException(422, "send a video file, upload_id, or sample_id")
         pacing = {k: v for k, v in {"max_breaks_per_hour": max_breaks_per_hour, "min_gap_s": min_gap_s,
                                     "max_ad_load_pct": max_ad_load_pct}.items() if v is not None}
         ids = [b.strip() for b in brand_ids.split(",") if b.strip()] if brand_ids else None

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Bash(npm run *)",
+      "Bash(git *)",
+      "Bash(python *)"
+    ],
+    "deny": ["Bash(git push *)"]
+  }
+}

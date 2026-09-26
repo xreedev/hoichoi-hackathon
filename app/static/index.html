@@ -3,235 +3,1035 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>hoichoi ad breaks</title>
+<title>BreakSense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0f1115; --panel:#181b22; --line:#2a2f3a; --text:#e6e8ee; --muted:#8a93a6; --accent:#e5484d;
-          --ok:#30a46c; --warn:#f5a524; }
-  * { box-sizing: border-box; }
-  body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
-  header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:baseline; }
-  header h1 { font-size:18px; margin:0; } header span { color:var(--muted); }
-  main { display:grid; grid-template-columns: 340px 1fr; gap:16px; padding:16px 20px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  section { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:16px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 10px; }
-  label { display:block; margin:8px 0 4px; color:var(--muted); font-size:12px; }
-  input, select, button { font:inherit; color:var(--text); background:#11141a; border:1px solid var(--line); border-radius:6px; padding:7px 9px; width:100%; }
-  button { background:var(--accent); border:none; cursor:pointer; font-weight:600; width:auto; padding:8px 14px; }
-  button.secondary { background:#2a2f3a; } button:disabled { opacity:.5; cursor:default; }
-  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  ul.stages { list-style:none; padding:0; margin:0; font-family: ui-monospace, Menlo, monospace; font-size:12px; }
-  ul.stages li { padding:2px 0; } .muted { color:var(--muted); } .warnline { color:var(--warn); } .err { color:var(--accent); }
-  .chip { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; margin:1px; background:#2a2f3a; }
-  .chip.neg { background:#4a1d20; color:#ffb4b4; }
-  table { width:100%; border-collapse:collapse; font-size:12px; } td, th { text-align:left; padding:5px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
-  .player { position:relative; background:#000; border-radius:8px; overflow:hidden; aspect-ratio:16/9; }
-  .player video { position:absolute; inset:0; width:100%; height:100%; background:#000; }
-  #ad { display:none; } .adbadge { display:none; position:absolute; top:10px; left:10px; background:var(--warn); color:#000; font-weight:700; padding:3px 9px; border-radius:4px; font-size:12px; }
-  svg text { fill: var(--muted); font-size:10px; }
-  .panelgrid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; } @media (max-width: 900px) { .panelgrid { grid-template-columns:1fr; } }
-  .bar { height:8px; background:var(--accent); border-radius:4px; }
-  pre { white-space:pre-wrap; font-size:11px; color:var(--muted); margin:0; }
-  a { color:#8ab4ff; }
+:root {
+  --bg: #0B0D12; --card: #141821; --border: #232937;
+  --text: #E8EAF0; --muted: #8A93A6;
+  --red: #E5484D; --amber: #F5A524; --green: #3DD68C; --blocked: #FF6B6B;
+  --r: 14px; --gap: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5;
+       background: var(--bg); color: var(--text); min-height: 100vh; }
+.page { max-width: 1100px; margin: 0 auto; padding: 0 16px 48px; }
+
+/* ── HEADER ── */
+header { display: flex; align-items: center; justify-content: space-between;
+         padding: 14px 0; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+.hd-left { display: flex; align-items: baseline; gap: 12px; }
+.hd-left h1 { font-size: 20px; font-weight: 700; letter-spacing: -.3px; }
+.hd-left p  { font-size: 13px; color: var(--muted); }
+.hd-pill { font-size: 11px; font-weight: 500; color: var(--muted);
+           border: 1px solid var(--border); border-radius: 20px; padding: 4px 10px; white-space: nowrap; }
+@media (max-width: 700px) { .hd-left p { display: none; } }
+
+/* ── CARDS ── */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+        padding: 20px; }
+.card + .card { margin-top: var(--gap); }
+.card-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+
+/* ── BUTTONS ── */
+button { font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+         height: 44px; border-radius: 10px; border: none; transition: opacity .15s, background .15s; }
+button:disabled { opacity: .4; cursor: default; }
+.btn-primary { background: var(--red); color: #fff; padding: 0 24px; }
+.btn-primary:not(:disabled):hover { opacity: .85; }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border);
+                 padding: 0 18px; }
+.btn-secondary:not(:disabled):hover { border-color: var(--muted); }
+.btn-sm { height: 34px; font-size: 13px; padding: 0 14px; border-radius: 8px; }
+
+/* ── SAMPLE TILES ── */
+.tiles-wrap { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px;
+              scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.tile { flex: 0 0 180px; border: 2px solid var(--border); border-radius: 10px;
+        cursor: pointer; transition: border-color .15s, transform .15s; overflow: hidden;
+        background: var(--bg); position: relative; }
+.tile:hover { border-color: var(--muted); transform: translateY(-2px); }
+.tile.selected { border-color: var(--red); }
+.tile-thumb { width: 100%; aspect-ratio: 16/9; background: #1a1f2b; object-fit: cover; display: block; }
+.tile-thumb-placeholder { width: 100%; aspect-ratio: 16/9; background: #1a1f2b;
+                           display: flex; align-items: center; justify-content: center; }
+.tile-info { padding: 8px 10px 10px; }
+.tile-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-dur   { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.badge-instant { position: absolute; top: 6px; right: 6px; background: var(--green);
+                 color: #000; font-size: 10px; font-weight: 700; padding: 2px 6px;
+                 border-radius: 6px; }
+
+/* drop zone tile */
+.tile-drop { border-style: dashed; flex: 0 0 180px; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; gap: 8px; padding: 16px;
+             color: var(--muted); min-height: 140px; }
+.tile-drop:hover { border-color: var(--red); color: var(--text); }
+.tile-drop.drag-over { border-color: var(--amber); background: #1a1610; }
+.tile-drop input { display: none; }
+.tile-drop span { font-size: 12px; text-align: center; }
+
+/* upload progress */
+.upload-bar-wrap { margin-top: 10px; display: none; }
+.upload-bar-bg { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.upload-bar { background: var(--amber); height: 6px; border-radius: 4px;
+              width: 0%; transition: width .2s; }
+.upload-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* run button row */
+.run-row { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+
+/* ── STEPPER ── */
+.stepper { display: flex; gap: 0; margin-top: 8px; }
+.step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+.step:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; right: -50%;
+                                 height: 2px; background: var(--border); z-index: 0; }
+.step.done::after  { background: var(--green); }
+.step.active::after { background: var(--border); }
+.step-icon { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+             background: var(--card); display: flex; align-items: center; justify-content: center;
+             z-index: 1; position: relative; transition: all .2s; }
+.step.done  .step-icon { border-color: var(--green); background: #0d2b1d; }
+.step.active .step-icon { border-color: var(--amber); background: #2b1f0a; }
+.step.error  .step-icon { border-color: var(--red);   background: #2b0e0e; }
+.step-label { font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center; }
+.step.done  .step-label, .step.active .step-label { color: var(--text); }
+.step-count { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.spin { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 700px) {
+  .stepper { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .step { flex-direction: row; gap: 10px; align-items: center; flex: none; width: 100%; }
+  .step::after { display: none; }
+  .step-label { margin-top: 0; text-align: left; }
+}
+.step-err-msg { color: var(--red); font-size: 13px; margin-top: 12px; }
+
+/* ── SUMMARY STRIP ── */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); margin-bottom: var(--gap); }
+@media (max-width: 700px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+.stat-tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+             padding: 16px; text-align: center; }
+.stat-val  { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-lbl  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── PLAYER ── */
+.player-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+               overflow: hidden; margin-bottom: var(--gap); }
+.player-toggle { display: flex; gap: 8px; padding: 12px 16px 0; }
+.toggle-btn { background: transparent; border: 1px solid var(--border); color: var(--muted);
+              font-size: 12px; height: 28px; padding: 0 12px; border-radius: 6px; cursor: pointer; }
+.toggle-btn.active { background: var(--red); border-color: var(--red); color: #fff; }
+.player-wrap { position: relative; aspect-ratio: 16/9; background: #000; }
+.player-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.ad-overlay { display: none; position: absolute; inset: 0; background: rgba(0,0,0,.85);
+              flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 10; }
+.ad-overlay.show { display: flex; }
+.ad-badge { background: var(--amber); color: #000; font-weight: 700; font-size: 13px;
+            padding: 4px 12px; border-radius: 6px; }
+.ad-brand { font-size: 20px; font-weight: 700; }
+.ad-resume { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ctrl-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-top: 1px solid var(--border); background: var(--card); }
+.ctrl-bar button { width: 36px; height: 36px; padding: 0; border-radius: 8px;
+                   background: var(--border); display: flex; align-items: center; justify-content: center; }
+.ctrl-bar button:hover { background: #2e3545; }
+.ctrl-time { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.scrubber-wrap { flex: 1; position: relative; height: 20px; display: flex; align-items: center; cursor: pointer; }
+.scrubber-bg { height: 4px; background: var(--border); border-radius: 2px; width: 100%; position: relative; }
+.scrubber-fill { height: 4px; background: var(--red); border-radius: 2px; position: absolute; left: 0; top: 0; width: 0%; }
+.ad-marker { position: absolute; top: 50%; transform: translate(-50%, -50%);
+             width: 10px; height: 10px; background: var(--amber); clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+             z-index: 2; }
+
+/* ── TIMELINE ── */
+.timeline-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+                 padding: 16px; margin-bottom: var(--gap); overflow-x: auto; }
+.timeline-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.tl-wrap { position: relative; height: 52px; min-width: 300px; }
+.tl-scenes { position: absolute; top: 16px; left: 0; right: 0; height: 28px; }
+.tl-scene  { position: absolute; height: 100%; border-radius: 3px; cursor: pointer; opacity: .85;
+             transition: opacity .1s; }
+.tl-scene:hover { opacity: 1; }
+.tl-hatch  { position: absolute; height: 100%; pointer-events: none; border-radius: 3px;
+             background: repeating-linear-gradient(45deg, transparent, transparent 3px,
+             rgba(255,107,107,.35) 3px, rgba(255,107,107,.35) 6px); }
+.tl-pin    { position: absolute; top: 0; transform: translateX(-50%);
+             display: flex; flex-direction: column; align-items: center; cursor: pointer; z-index: 5; }
+.tl-pin-diamond { width: 14px; height: 14px; background: var(--amber);
+                  clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+                  display: flex; align-items: center; justify-content: center; font-size: 8px;
+                  font-weight: 700; color: #000; }
+.tl-cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.6);
+             pointer-events: none; z-index: 6; }
+.tl-shield { position: absolute; top: 0; right: 2px; font-size: 9px; }
+.tl-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+              background: #1e2330; border: 1px solid var(--border); border-radius: 8px;
+              padding: 8px 10px; min-width: 180px; max-width: 240px; font-size: 12px;
+              z-index: 20; pointer-events: none; white-space: normal; }
+.tl-scene-wrap { position: absolute; top: 16px; height: 28px; }
+.tl-scene-wrap:hover .tl-tooltip { display: block; }
+
+/* ── BREAK CARDS ── */
+.break-row { display: flex; gap: var(--gap); overflow-x: auto; padding-bottom: 4px;
+             scrollbar-width: thin; }
+@media (max-width: 700px) { .break-row { flex-direction: column; overflow-x: visible; } }
+.break-card { flex: 0 0 280px; background: var(--card); border: 1px solid var(--border);
+              border-radius: var(--r); padding: 16px; transition: border-color .15s; }
+.break-card.active { border-color: var(--amber); }
+@media (max-width: 700px) { .break-card { flex: none; } }
+.bc-time  { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--amber); }
+.bc-brand { font-size: 15px; font-weight: 600; margin-top: 4px; }
+.bc-cat   { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.bc-reason { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.bc-why   { list-style: none; margin: 0 0 10px; }
+.bc-why li { font-size: 12px; display: flex; gap: 6px; margin-bottom: 4px; }
+.bc-why li::before { content: '✓'; color: var(--green); font-weight: 700; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+        padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.chip-grey   { background: var(--border); color: var(--muted); }
+.chip-red    { background: rgba(255,107,107,.15); color: var(--blocked); }
+.chips-wrap  { display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* ── DETAILS DRAWER ── */
+.drawer-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer;
+                 font-size: 14px; font-weight: 500; color: var(--muted); margin-bottom: 12px;
+                 user-select: none; }
+.drawer-toggle:hover { color: var(--text); }
+.drawer-arrow { transition: transform .2s; }
+.drawer-arrow.open { transform: rotate(90deg); }
+.drawer-body { display: none; }
+.drawer-body.open { display: block; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab { background: transparent; border: none; border-bottom: 2px solid transparent;
+       color: var(--muted); font-size: 13px; font-weight: 500; padding: 8px 14px;
+       cursor: pointer; margin-bottom: -1px; transition: color .15s; height: auto; border-radius: 0; }
+.tab.active { color: var(--text); border-bottom-color: var(--red); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* brands grid */
+.brands-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.brand-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.brand-name { font-weight: 600; margin-bottom: 2px; }
+.brand-cat  { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+
+/* candidates table */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border);
+     color: var(--muted); font-weight: 500; font-size: 12px; cursor: pointer; user-select: none; }
+th:hover { color: var(--text); }
+td { padding: 6px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums;
+     vertical-align: top; }
+tr:hover td { background: rgba(255,255,255,.02); }
+
+/* form */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
+label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+input[type=text], input[type=number] {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-family: inherit; font-size: 13px; padding: 8px 10px;
+  outline: none; transition: border-color .15s; }
+input:focus { border-color: var(--red); }
+.form-group { display: flex; flex-direction: column; }
+
+/* misc */
+.hidden { display: none !important; }
+.muted  { color: var(--muted); }
+.section-title { font-size: 18px; font-weight: 600; margin-bottom: var(--gap); }
+.row { display: flex; align-items: center; gap: 10px; }
+.status-msg { font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body>
-<header><h1>Context-aware ad breaks</h1><span>Bengali drama → scenes → safe breaks → matched brands → VMAP</span></header>
-<main>
-  <div>
-    <section>
-      <h2>New run</h2>
-      <label>Pick a sample</label>
-      <select id="sample"><option value="">— none —</option></select>
-      <label>…or upload a video</label>
-      <input type="file" id="file" accept="video/*">
-      <div class="row" style="margin-top:10px"><button id="go">Run</button><span id="runid" class="muted"></span></div>
-    </section>
-    <section>
-      <h2>Progress</h2>
-      <ul class="stages" id="stages"><li class="muted">No run yet.</li></ul>
-    </section>
-    <section>
-      <h2>Brand library</h2>
-      <table id="brands"></table>
-      <details style="margin-top:10px"><summary>Add brand</summary>
-        <label>Brand id</label><input id="b_id" placeholder="brand_x">
-        <label>Display name</label><input id="b_name" placeholder="Brand X">
-        <label>Category</label><input id="b_cat" placeholder="pets/pet food">
-        <label>Target contexts (comma-separated)</label><input id="b_tgt" placeholder="pet, dog, feeding pets">
-        <label>Negative contexts (comma-separated)</label><input id="b_neg" placeholder="funeral, hospital, violence">
-        <label>Ad duration (s)</label><input id="b_dur" type="number" value="15">
-        <div class="row" style="margin-top:10px"><button id="addbrand" class="secondary">Add brand</button><span id="brandmsg" class="muted"></span></div>
-      </details>
-    </section>
+<div class="page">
+
+<!-- HEADER -->
+<header>
+  <div class="hd-left">
+    <h1>BreakSense</h1>
+    <p>AI finds the right moment and the right brand for every ad break.</p>
   </div>
-  <div>
-    <section>
-      <div class="player"><video id="content" controls playsinline></video><video id="ad" playsinline></video><div class="adbadge" id="adbadge">AD</div></div>
-      <div class="row" style="margin-top:10px">
-        <button id="rematch" class="secondary" disabled>Re-match brands</button>
-        <a id="dlvmap" href="#">Download VMAP</a> <a id="dldebug" href="#">Download debug.json</a>
-        <span id="summary" class="muted"></span>
+  <div class="hd-pill">Gemini · Scene understanding</div>
+</header>
+
+<!-- START CARD -->
+<div id="start-card" class="card">
+  <div class="card-title">Choose an episode</div>
+  <div class="tiles-wrap" id="tiles-wrap">
+    <!-- sample tiles injected here -->
+    <label class="tile tile-drop" id="drop-tile">
+      <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-matroska,.mp4,.mov,.mkv">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Drop your own video, or browse<br><span class="muted" style="font-size:11px">MP4 / MOV · max 500 MB</span></span>
+    </label>
+  </div>
+  <div class="upload-bar-wrap" id="upload-wrap">
+    <div class="upload-bar-bg"><div class="upload-bar" id="upload-bar"></div></div>
+    <div class="upload-label" id="upload-label">Uploading…</div>
+  </div>
+  <div class="run-row">
+    <button class="btn-primary" id="run-btn" disabled>Find ad breaks</button>
+    <span class="status-msg" id="start-msg"></span>
+  </div>
+</div>
+
+<!-- PROGRESS STEPPER (hidden until run starts) -->
+<div id="progress-card" class="card hidden" style="margin-top:var(--gap)">
+  <div class="card-title">Processing</div>
+  <div class="stepper" id="stepper">
+    <div class="step pending" data-key="upload">
+      <div class="step-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
-    </section>
-    <section>
-      <h2>Timeline <span class="muted" style="text-transform:none;letter-spacing:0">— scenes (colour = mood, red hatch = sensitive), speech, candidates (green = break, grey = rejected). Click a candidate.</span></h2>
-      <svg id="timeline" width="100%" height="120"></svg>
-    </section>
-    <section id="detail"><h2>Break details</h2><div class="muted">Click a candidate on the timeline.</div></section>
+      <div>
+        <div class="step-label">Upload</div>
+        <div class="step-count" id="sc-upload"></div>
+      </div>
+    </div>
+    <div class="step pending" data-key="shots">
+      <div class="step-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="8" y1="2" x2="8" y2="22"/><line x1="16" y1="2" x2="16" y2="22"/></svg>
+      </div>
+      <div>
+        <div class="step-label">Scene cuts</div>
+        <div class="step-count" id="sc-shots"></div>
+      </div>
+    </div>
+    <div class="step pending" data-key="vad">
+      <div class="step-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+      </div>
+      <div>
+        <div class="step-label">Speech</div>
+        <div class="step-count" id="sc-vad"></div>
+      </div>
+    </div>
+    <div class="step pending" data-key="scenes">
+      <div class="step-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <div>
+        <div class="step-label">Scene understanding (AI)</div>
+        <div class="step-count" id="sc-scenes"></div>
+      </div>
+    </div>
+    <div class="step pending" data-key="pacing">
+      <div class="step-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div>
+        <div class="step-label">Breaks &amp; brands</div>
+        <div class="step-count" id="sc-pacing"></div>
+      </div>
+    </div>
   </div>
-</main>
+  <div id="step-error" class="step-err-msg hidden"></div>
+  <div style="margin-top:16px">
+    <button class="btn-secondary btn-sm hidden" id="retry-btn">Try again</button>
+  </div>
+</div>
+
+<!-- RESULTS (hidden until done) -->
+<div id="results" class="hidden" style="margin-top:var(--gap)">
+
+  <!-- summary strip -->
+  <div class="stat-row">
+    <div class="stat-tile"><div class="stat-val" id="stat-dur">—</div><div class="stat-lbl">Episode length</div></div>
+    <div class="stat-tile"><div class="stat-val" id="stat-scenes">—</div><div class="stat-lbl">Scenes found</div></div>
+    <div class="stat-tile"><div class="stat-val" id="stat-breaks">—</div><div class="stat-lbl">Ad breaks placed</div></div>
+    <div class="stat-tile"><div class="stat-val" id="stat-blocked">—</div><div class="stat-lbl">Brands blocked for safety</div></div>
+  </div>
+
+  <!-- player -->
+  <div class="player-card">
+    <div class="player-toggle">
+      <button class="toggle-btn active" id="tog-ads" onclick="setMode('ads')">With ads</button>
+      <button class="toggle-btn" id="tog-orig" onclick="setMode('orig')">Original</button>
+    </div>
+    <div class="player-wrap">
+      <video id="vid-content" playsinline></video>
+      <div class="ad-overlay" id="ad-overlay">
+        <div class="ad-badge">AD</div>
+        <div class="ad-brand" id="ad-brand-name"></div>
+        <div class="ad-resume" id="ad-countdown"></div>
+      </div>
+    </div>
+    <div class="ctrl-bar">
+      <button id="play-btn" onclick="togglePlay()" title="Play/pause">
+        <svg id="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg id="icon-pause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <span class="ctrl-time"><span id="ctrl-cur">00:00</span> / <span id="ctrl-dur">00:00</span></span>
+      <div class="scrubber-wrap" id="scrubber">
+        <div class="scrubber-bg">
+          <div class="scrubber-fill" id="scrubber-fill"></div>
+          <!-- ad markers injected -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- timeline -->
+  <div class="timeline-card">
+    <div class="timeline-label">Scene timeline — hover for details, click a pin to jump</div>
+    <div class="tl-wrap" id="tl-wrap">
+      <div class="tl-scenes" id="tl-scenes"></div>
+      <div class="tl-cursor" id="tl-cursor" style="left:0"></div>
+    </div>
+  </div>
+
+  <!-- break cards -->
+  <div class="section-title">Ad breaks</div>
+  <div class="break-row" id="break-row"></div>
+
+  <!-- details drawer -->
+  <div style="margin-top:28px">
+    <div class="drawer-toggle" id="drawer-toggle" onclick="toggleDrawer()">
+      <svg class="drawer-arrow" id="drawer-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      Show technical details
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab('brands')">Brands</button>
+          <button class="tab" onclick="switchTab('candidates')">Candidates</button>
+          <button class="tab" onclick="switchTab('downloads')">Downloads</button>
+        </div>
+        <!-- Brands tab -->
+        <div class="tab-panel active" id="tab-brands">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+            <button class="btn-secondary btn-sm" id="rematch-btn" onclick="doRematch()">Re-match brands</button>
+            <span class="muted" style="font-size:12px">Re-matches in seconds using the cached scene analysis</span>
+            <span id="rematch-msg" class="muted" style="font-size:12px"></span>
+          </div>
+          <div class="brands-grid" id="brands-grid"></div>
+          <details style="margin-top:16px">
+            <summary style="cursor:pointer;font-size:13px;font-weight:500;margin-bottom:12px">Add brand</summary>
+            <div class="form-grid" style="margin-top:10px">
+              <div class="form-group"><label>Brand ID</label><input type="text" id="b-id" placeholder="brand_x"></div>
+              <div class="form-group"><label>Display name</label><input type="text" id="b-name" placeholder="Brand X"></div>
+              <div class="form-group"><label>Category</label><input type="text" id="b-cat" placeholder="food / beverage"></div>
+              <div class="form-group"><label>Ad duration (s)</label><input type="number" id="b-dur" value="15"></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Target contexts (comma-separated)</label><input type="text" id="b-tgt" placeholder="family, celebration"></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Negative contexts (comma-separated)</label><input type="text" id="b-neg" placeholder="funeral, hospital"></div>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <button class="btn-secondary btn-sm" onclick="addBrand()">Add brand</button>
+              <span id="brand-msg" class="muted" style="font-size:12px"></span>
+            </div>
+          </details>
+        </div>
+        <!-- Candidates tab -->
+        <div class="tab-panel" id="tab-candidates">
+          <table id="cand-table">
+            <thead><tr>
+              <th onclick="sortCands('t_s')">Time ↕</th>
+              <th onclick="sortCands('status')">Status ↕</th>
+              <th onclick="sortCands('score')">Score ↕</th>
+              <th>Reason</th>
+            </tr></thead>
+            <tbody id="cand-body"></tbody>
+          </table>
+        </div>
+        <!-- Downloads tab -->
+        <div class="tab-panel" id="tab-downloads">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;padding-top:4px">
+            <a id="dl-vmap" href="#" download="vmap.xml">
+              <button class="btn-secondary">Download VMAP XML</button>
+            </a>
+            <a id="dl-debug" href="#" download="debug.json">
+              <button class="btn-secondary">Download debug.json</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /results -->
+
+</div><!-- /page -->
 <script>
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt = (t) => `${String(Math.floor(t/60)).padStart(2,"0")}:${(t%60).toFixed(1).padStart(4,"0")}`;
-const MOOD = {happy:"#30a46c", neutral:"#5b6b88", tense:"#f5a524", sad:"#3e63dd", romantic:"#d6409f", comic:"#12a594", angry:"#e5484d"};
-let RUN = null, DATA = null, BREAKS = [];
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = t => { t = Math.max(0, t); const m = Math.floor(t / 60), s = (t % 60); return `${String(m).padStart(2,'0')}:${s.toFixed(0).padStart(2,'0')}`; };
+const fmtDur = t => { const m = Math.floor(t / 60), s = Math.round(t % 60); return `${m}m ${s}s`; };
 
-async function loadBrands() {
-  const bs = await (await fetch("/api/brands")).json();
-  $("brands").innerHTML = "<tr><th>Brand</th><th>Targets</th><th>Negative</th></tr>" + bs.map(b =>
-    `<tr><td><b>${esc(b.name)}</b><br><span class="muted">${esc(b.category)}</span></td>
-     <td>${b.target_contexts.slice(0,5).map(t => `<span class="chip">${esc(t)}</span>`).join("")}${b.target_contexts.length>5?" …":""}</td>
-     <td>${b.negative_contexts.map(t => `<span class="chip neg">${esc(t)}</span>`).join("")}</td></tr>`).join("");
-}
+const MOOD_COLOR = {
+  happy: 'rgba(61,214,140,.7)', neutral: 'rgba(107,114,128,.7)', tense: 'rgba(245,158,11,.7)',
+  sad: 'rgba(96,165,250,.7)', romantic: 'rgba(244,114,182,.7)', comic: 'rgba(167,139,250,.7)',
+  angry: 'rgba(239,68,68,.7)'
+};
+
+// ── state ──
+let SELECTED = null;       // {type:'sample'|'file', id, path, name} or null
+let RUN_ID   = null;
+let RESULT   = null;
+let BREAKS   = [];         // [{t_s, brand, title, ad_duration_s, played}]
+let IN_AD    = null;
+let AD_MODE  = true;
+let CAND_SORT = {key:'t_s', asc:true};
+let UPLOAD_ID = null;
+let pollTimer = null;
+
+// ── init ──
+window.addEventListener('DOMContentLoaded', () => {
+  loadSamples();
+  loadBrandsGrid();
+  setupDropZone();
+  setupScrubber();
+});
+
+// ── samples ──
 async function loadSamples() {
-  const ss = await (await fetch("/api/samples")).json();
-  $("sample").innerHTML = `<option value="">— none —</option>` + ss.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
-}
+  let samples = [];
+  try { samples = await fetch('/api/samples').then(r => r.json()); } catch {}
+  const wrap = $('tiles-wrap');
+  const drop = $('drop-tile');
 
-$("go").onclick = async () => {
-  const fd = new FormData();
-  if ($("file").files[0]) fd.append("video", $("file").files[0]);
-  else if ($("sample").value) fd.append("sample_id", $("sample").value);
-  else return alert("Pick a sample or choose a file.");
-  $("go").disabled = true; $("stages").innerHTML = "<li class='muted'>Uploading…</li>";
-  const r = await fetch("/api/runs", {method:"POST", body: fd});
-  if (!r.ok) { $("go").disabled = false; return alert(await r.text()); }
-  RUN = (await r.json()).run_id; $("runid").textContent = "run " + RUN;
-  $("stages").innerHTML = "";
-  const es = new EventSource(`/api/runs/${RUN}/events`);
-  const line = (html, cls="") => { const li = document.createElement("li"); li.className = cls; li.innerHTML = html; $("stages").appendChild(li); };
-  es.addEventListener("stage_done", e => { const d = JSON.parse(e.data); line(`✓ ${esc(d.stage).padEnd(12)} ${d.seconds.toFixed(1)}s  ${esc(d.summary)}`); });
-  es.addEventListener("warning", e => { const d = JSON.parse(e.data); line(`! ${esc(d.message)}`, "warnline"); });
-  es.addEventListener("error", e => { if (e.data) { line(`✗ ${esc(JSON.parse(e.data).message)}`, "err"); } es.close(); $("go").disabled = false; });
-  es.addEventListener("done", () => { es.close(); $("go").disabled = false; loadResult(); });
-};
-
-async function loadResult(payload) {
-  const r = payload || await (await fetch(`/api/runs/${RUN}`)).json();
-  if (r.status !== "done") return;
-  DATA = r; const res = r.result;
-  $("rematch").disabled = false; $("dlvmap").href = r.vmap_url; $("dldebug").href = r.debug_url;
-  const sel = res.candidates.filter(c => c.status === "selected").length;
-  $("summary").textContent = `${res.scenes.length} scenes · ${res.candidates.length} candidates · ${res.placements.length} breaks`;
-  const content = $("content");
-  if (!content.src.endsWith(r.proxy_url)) content.src = r.proxy_url;
-  await loadVmap(r.vmap_url);
-  drawTimeline();
-}
-
-// ---- player: reads OUR VMAP, cuts to the ad at each timeOffset, resumes at the exact offset -------------
-function hmsToSec(s) { const [h,m,x] = s.split(":"); return (+h)*3600 + (+m)*60 + parseFloat(x); }
-async function loadVmap(url) {
-  const xml = new DOMParser().parseFromString(await (await fetch(url)).text(), "application/xml");
-  const V = "http://www.iab.com/VAST";
-  BREAKS = [...xml.getElementsByTagNameNS("http://www.iab.net/videosuite/vmap", "AdBreak")].map(b => ({
-    id: b.getAttribute("breakId"), t: hmsToSec(b.getAttribute("timeOffset")),
-    media: b.getElementsByTagNameNS(V, "MediaFile")[0].textContent.trim(),
-    title: b.getElementsByTagNameNS(V, "AdTitle")[0].textContent, played: false }));
-}
-const content = $("content"), ad = $("ad");
-let inAd = null;
-content.addEventListener("timeupdate", () => {
-  if (inAd) return;
-  const b = BREAKS.find(b => !b.played && content.currentTime >= b.t && content.currentTime < b.t + 1.5);
-  if (b) playAd(b);
-});
-content.addEventListener("seeked", () => { if (!inAd) BREAKS.forEach(b => { if (b.t < content.currentTime - 1.5) b.played = true; }); });
-function playAd(b) {
-  inAd = b; b.played = true; content.pause();
-  ad.src = b.media; ad.style.display = "block"; $("adbadge").style.display = "block"; $("adbadge").textContent = `AD · ${b.title}`;
-  ad.play();
-}
-ad.addEventListener("ended", () => {
-  const b = inAd; inAd = null; ad.style.display = "none"; $("adbadge").style.display = "none";
-  content.currentTime = b.t; content.play();
-});
-
-// ---- timeline -----------------------------------------------------------------------------------------
-function drawTimeline() {
-  const res = DATA.result, dur = res.meta.duration_s, svg = $("timeline"), W = svg.clientWidth || 800;
-  const x = t => 4 + (W - 8) * t / dur, NS = "http://www.w3.org/2000/svg";
-  svg.innerHTML = `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-    <rect width="6" height="6" fill="none"/><line x1="0" y1="0" x2="0" y2="6" stroke="#e5484d" stroke-width="3"/></pattern></defs>`;
-  const add = (tag, attrs, title) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]);
-    if (title) { const t = document.createElementNS(NS, "title"); t.textContent = title; el.appendChild(t); } svg.appendChild(el); return el; };
-  add("text", {x: 4, y: 11}).textContent = "scenes";
-  res.scenes.forEach(s => {
-    const sens = s.sensitive_tags.filter(t => t.tag !== "none" && t.confidence >= 0.10);
-    const title = `#${s.id} ${fmt(s.start_s)}–${fmt(s.end_s)} ${s.mood}\n${s.dominant_activity} @ ${s.setting}` +
-                  (sens.length ? `\nsensitive: ${sens.map(t => t.tag + " " + t.confidence).join(", ")}` : "");
-    const r = add("rect", {x: x(s.start_s), y: 14, width: Math.max(1, x(s.end_s) - x(s.start_s) - 1), height: 26, fill: MOOD[s.mood] || "#555", rx: 2}, title);
-    r.style.cursor = "pointer"; r.onclick = () => { content.currentTime = s.start_s; };
-    if (sens.length) add("rect", {x: x(s.start_s), y: 14, width: Math.max(1, x(s.end_s) - x(s.start_s) - 1), height: 26, fill: "url(#hatch)", "pointer-events": "none"});
+  samples.forEach(s => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.dataset.id = s.id;
+    tile.innerHTML = `
+      <img class="tile-thumb" src="/api/samples/${encodeURIComponent(s.id)}/thumb.jpg"
+           onerror="this.style.display='none'" alt="${esc(s.title)}">
+      <div class="tile-info">
+        <div class="tile-title">${esc(s.title)}</div>
+        <div class="tile-dur">${fmtDur(s.duration_s || 0)}</div>
+      </div>
+      ${s.has_cached_run ? '<div class="badge-instant">Instant</div>' : ''}
+    `;
+    tile.addEventListener('click', () => selectSample(s, tile));
+    wrap.insertBefore(tile, drop);
   });
-  add("text", {x: 4, y: 53}).textContent = "speech";
-  (DATA.speech || []).forEach(s => add("rect", {x: x(s.start_s), y: 56, width: Math.max(0.5, x(s.end_s) - x(s.start_s)), height: 8, fill: "#4b5263"}));
-  add("text", {x: 4, y: 78}).textContent = "candidates";
-  const placed = Object.fromEntries(res.placements.map(p => [p.t_s, p]));
-  res.candidates.forEach(c => {
-    const sel = c.status === "selected" && placed[c.t_s];
-    const el = add("rect", {x: x(c.t_s) - (sel ? 3 : 1.5), y: sel ? 80 : 84, width: sel ? 6 : 3, height: sel ? 30 : 20,
-                            fill: sel ? "#3dd68c" : (c.is_scene_boundary ? "#8a93a6" : "#3a4050"), rx: 1,
-                            stroke: sel ? "#fff" : "none", class: sel ? "cand break" : "cand"},
-                   `${fmt(c.t_s)} ${c.status}${c.is_scene_boundary ? " (scene boundary)" : ""}`);
-    el.style.cursor = "pointer"; el.onclick = () => showDetail(c);
-  });
-  const cur = add("line", {x1: 0, x2: 0, y1: 12, y2: 116, stroke: "#fff", "stroke-width": 1, id: "cursor"});
-  content.ontimeupdate = () => { cur.setAttribute("x1", x(content.currentTime)); cur.setAttribute("x2", x(content.currentTime)); };
-}
 
-function showDetail(c) {
-  const res = DATA.result, sc = Object.fromEntries(res.scenes.map(s => [s.id, s]));
-  const p = res.placements.find(p => p.t_s === c.t_s), bm = c.decisions.brand_match;
-  const scene = s => s ? `<b>#${s.id}</b> ${fmt(s.start_s)}–${fmt(s.end_s)} · ${esc(s.mood)} · tension ${s.narrative_tension}<br>${esc(s.summary_en)}<br>
-      <span class="muted">${esc(s.dominant_activity)} @ ${esc(s.setting)}</span><br>${s.sensitive_tags.map(t => `<span class="chip ${t.tag!=="none"&&t.confidence>=0.1?"neg":""}">${esc(t.tag)} ${t.confidence}</span>`).join("")}` : "—";
-  let html = `<h2>Candidate at ${fmt(c.t_s)} — <span style="color:${p ? "var(--ok)" : "var(--muted)"}">${p ? "AD BREAK" : "rejected"}</span></h2>
-    <div class="row" style="margin-bottom:8px"><button class="secondary" onclick="content.currentTime=${Math.max(0, c.t_s - 5)};content.play()">Play from 5 s before</button>
-    <span class="muted">pause ${(c.pause_before_s + c.pause_after_s).toFixed(1)} s · scene boundary: ${c.is_scene_boundary ? "yes" : "no"} · score ${c.score?.toFixed(3)}</span></div>
-    <div class="panelgrid"><div><label>Scene before</label>${scene(sc[c.prev_scene_id])}</div><div><label>Scene after</label>${scene(sc[c.next_scene_id])}</div></div>
-    <label>Why (pacing & safety verdict)</label><ul>${c.reasons.map(r => `<li class="${r.startsWith("REJECT")||r.startsWith("DROPPED") ? "err" : ""}">${esc(r)}</li>`).join("")}</ul>`;
-  if (bm) {
-    const rank = Object.entries(bm.ranking || {}).sort((a, b) => b[1] - a[1]);
-    html += `<div class="panelgrid"><div><label>Brand ranking (${esc(bm.sources?.ranking || "")})</label>
-      ${rank.map(([id, v]) => `<div class="row"><span style="width:90px">${esc(id)}${id === bm.winner ? " ✓" : ""}</span><div style="flex:1;background:#2a2f3a;border-radius:4px"><div class="bar" style="width:${(v*100).toFixed(0)}%;background:${id===bm.winner?"var(--ok)":"var(--accent)"}"></div></div><span>${v.toFixed(2)}</span></div>`).join("") || "<span class='muted'>no survivor</span>"}
-      ${p ? `<p><b>${esc(p.brand_id)}</b> — ${esc(p.brand_reason)}</p>` : ""}</div>
-      <div><label>Brands blocked</label>${bm.blocked.length ? `<table>${bm.blocked.map(b => `<tr><td><b>${esc(b.brand_id)}</b></td><td>${esc(b.reason)}<pre>${esc(JSON.stringify(b.evidence))}</pre></td></tr>`).join("")}</table>` : "<span class='muted'>none</span>"}</div></div>`;
+  // preselect first cached
+  const cached = samples.find(s => s.has_cached_run);
+  if (cached) {
+    const tile = wrap.querySelector(`[data-id="${cached.id}"]`);
+    if (tile) selectSample(cached, tile);
   }
-  $("detail").innerHTML = html;
 }
 
-$("rematch").onclick = async () => {
-  $("rematch").disabled = true; $("rematch").textContent = "Re-matching…";
-  const r = await fetch(`/api/runs/${RUN}/rematch`, {method: "POST"});
-  $("rematch").textContent = "Re-match brands"; $("rematch").disabled = false;
-  if (!r.ok) return alert(await r.text());
-  BREAKS = []; await loadResult(await r.json());
+function selectSample(s, tile) {
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+  tile.classList.add('selected');
+  SELECTED = {type: 'sample', id: s.id, name: s.title};
+  UPLOAD_ID = null;
+  $('upload-wrap').style.display = 'none';
+  $('run-btn').disabled = false;
+  $('start-msg').textContent = s.has_cached_run ? 'Results ready instantly' : '';
+}
+
+// ── drop zone ──
+function setupDropZone() {
+  const drop = $('drop-tile');
+  const input = $('file-input');
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) handleFile(input.files[0]);
+  });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+function handleFile(file) {
+  if (file.size > 500 * 1024 * 1024) { alert('File exceeds 500 MB limit.'); return; }
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+  $('drop-tile').classList.add('selected');
+  SELECTED = {type: 'file', file, name: file.name};
+  UPLOAD_ID = null;
+  $('run-btn').disabled = false;
+  $('start-msg').textContent = file.name;
+}
+
+// ── chunked upload ──
+const CHUNK = 20 * 1024 * 1024; // 20 MB
+async function uploadChunked(file) {
+  $('upload-wrap').style.display = 'block';
+  setBar(0, `0 / ${(file.size / 1024 / 1024).toFixed(1)} MB`);
+
+  const {upload_id} = await fetch('/api/uploads/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({filename: file.name, size: file.size})
+  }).then(r => r.json());
+
+  let offset = 0;
+  while (offset < file.size) {
+    const chunk = file.slice(offset, offset + CHUNK);
+    await fetch(`/api/uploads/${upload_id}/chunk`, {method: 'POST', body: chunk,
+      headers: {'Content-Type': 'application/octet-stream'}});
+    offset += chunk.size;
+    const pct = Math.round(offset / file.size * 100);
+    setBar(pct, `${(offset / 1024 / 1024).toFixed(1)} / ${(file.size / 1024 / 1024).toFixed(1)} MB`);
+  }
+  return upload_id;
+}
+
+function setBar(pct, label) {
+  $('upload-bar').style.width = pct + '%';
+  $('upload-label').textContent = label;
+}
+
+// ── run ──
+$('run-btn').addEventListener('click', startRun);
+$('retry-btn').addEventListener('click', () => { resetProgress(); startRun(); });
+
+async function startRun() {
+  if (!SELECTED) return;
+  $('run-btn').disabled = true;
+  $('start-msg').textContent = '';
+  resetProgress();
+  $('progress-card').classList.remove('hidden');
+  $('results').classList.add('hidden');
+  setStep('upload', 'active');
+
+  const fd = new FormData();
+  if (SELECTED.type === 'file') {
+    try {
+      UPLOAD_ID = await uploadChunked(SELECTED.file);
+      fd.append('upload_id', UPLOAD_ID);
+    } catch(e) { showStepError('Upload failed: ' + e.message); return; }
+  } else {
+    fd.append('sample_id', SELECTED.id);
+  }
+
+  setStep('upload', 'done', '');
+  $('upload-wrap').style.display = 'none';
+
+  let res;
+  try {
+    res = await fetch('/api/runs', {method: 'POST', body: fd}).then(r => r.json());
+  } catch(e) { showStepError('Failed to start run: ' + e.message); return; }
+
+  RUN_ID = res.run_id;
+  pollStatus();
+}
+
+// ── polling ──
+const STAGE_MAP = {
+  ingest: 'upload', shots: 'shots', vad: 'vad',
+  transcribe: 'vad', scenes: 'scenes', candidates: 'pacing',
+  pacing: 'pacing', brands: 'pacing', manifest: 'pacing'
 };
 
-$("addbrand").onclick = async () => {
-  const split = s => s.split(",").map(x => x.trim()).filter(Boolean), dur = +$("b_dur").value || 15, id = $("b_id").value.trim();
-  const body = {brand_id: id, display_name: $("b_name").value.trim(), category: $("b_cat").value.trim(),
-                target_contexts: split($("b_tgt").value), negative_contexts: split($("b_neg").value),
-                creatives: [{id: `${id}_${dur}s`, duration_sec: dur, language: "bn", url: `ads/${id}/${id}_${dur}s.mp4`}]};
-  const r = await fetch("/api/brands", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
-  $("brandmsg").textContent = r.ok ? "Added. Click Re-match." : await r.text();
-  if (r.ok) loadBrands();
-};
+async function pollStatus() {
+  if (!RUN_ID) return;
+  let data;
+  try { data = await fetch(`/api/runs/${RUN_ID}/status`).then(r => r.json()); }
+  catch { pollTimer = setTimeout(pollStatus, 2000); return; }
 
-window.addEventListener("resize", () => DATA && drawTimeline());
-loadBrands(); loadSamples();
+  processEvents(data.events || []);
+
+  if (data.status === 'done') {
+    clearTimeout(pollTimer);
+    loadResult();
+  } else if (data.status === 'error') {
+    clearTimeout(pollTimer);
+    showStepError(data.error || 'An error occurred.');
+    $('retry-btn').classList.remove('hidden');
+    $('run-btn').disabled = false;
+  } else {
+    pollTimer = setTimeout(pollStatus, 2000);
+  }
+}
+
+let _seenEvents = 0;
+function processEvents(events) {
+  events.slice(_seenEvents).forEach(e => {
+    _seenEvents++;
+    if (e.event === 'stage_done') {
+      const key = STAGE_MAP[e.data.stage] || e.data.stage;
+      setStep(key, 'done', e.data.summary || '');
+      // mark next step active
+      const order = ['upload','shots','vad','scenes','pacing'];
+      const idx = order.indexOf(key);
+      if (idx >= 0 && idx < order.length - 1) setStep(order[idx + 1], 'active');
+    }
+  });
+}
+
+// ── step helpers ──
+function setStep(key, state, label) {
+  const el = document.querySelector(`.step[data-key="${key}"]`);
+  if (!el) return;
+  el.className = 'step ' + state;
+  const icon = el.querySelector('.step-icon');
+  if (state === 'active') {
+    icon.innerHTML = `<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-dasharray="30" stroke-dashoffset="10"/></svg>`;
+  } else if (state === 'done') {
+    icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+  } else if (state === 'error') {
+    icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  }
+  if (label !== undefined) {
+    const sc = el.querySelector('.step-count');
+    if (sc) sc.textContent = label;
+  }
+}
+
+function resetProgress() {
+  _seenEvents = 0;
+  ['upload','shots','vad','scenes','pacing'].forEach(k => {
+    const el = document.querySelector(`.step[data-key="${k}"]`);
+    if (!el) return;
+    el.className = 'step pending';
+    el.querySelector('.step-icon').innerHTML = '';
+    const sc = el.querySelector('.step-count'); if (sc) sc.textContent = '';
+  });
+  $('step-error').classList.add('hidden');
+  $('retry-btn').classList.add('hidden');
+}
+
+function showStepError(msg) {
+  ['upload','shots','vad','scenes','pacing'].forEach(k => {
+    const el = document.querySelector(`.step[data-key="${k}"]`);
+    if (el && el.classList.contains('active')) setStep(k, 'error');
+  });
+  $('step-error').textContent = msg;
+  $('step-error').classList.remove('hidden');
+}
+
+// ── result ──
+async function loadResult() {
+  const r = await fetch(`/api/runs/${RUN_ID}`).then(r => r.json());
+  if (r.status !== 'done') return;
+  RESULT = r;
+  const res = r.result;
+
+  // stats
+  $('stat-dur').textContent    = fmtDur(res.meta.duration_s);
+  $('stat-scenes').textContent = res.scenes.length;
+  $('stat-breaks').textContent = res.placements.length;
+  const totalBlocked = res.placements.reduce((n, p) => n + (p.blocked_brands?.length || 0), 0);
+  $('stat-blocked').textContent = totalBlocked;
+
+  // player
+  const vid = $('vid-content');
+  vid.src = r.proxy_url;
+
+  // build BREAKS from VMAP
+  await buildBreaks(r.vmap_url);
+
+  // scrubber markers
+  buildScrubberMarkers(res.meta.duration_s);
+
+  // timeline
+  buildTimeline(res);
+
+  // break cards
+  buildBreakCards(res);
+
+  // candidates
+  buildCandidates(res);
+
+  // downloads
+  $('dl-vmap').href   = r.vmap_url;
+  $('dl-debug').href  = r.debug_url;
+
+  $('progress-card').classList.add('hidden');
+  $('results').classList.remove('hidden');
+  $('run-btn').disabled = false;
+  $('results').scrollIntoView({behavior: 'smooth', block: 'start'});
+
+  loadBrandsGrid();
+}
+
+// ── VMAP parser ──
+async function buildBreaks(vmapUrl) {
+  BREAKS = [];
+  try {
+    const xml = new DOMParser().parseFromString(await fetch(vmapUrl).then(r => r.text()), 'application/xml');
+    const VMAP_NS = 'http://www.iab.net/videosuite/vmap';
+    const VAST_NS = 'http://www.iab.com/VAST';
+    [...xml.getElementsByTagNameNS(VMAP_NS, 'AdBreak')].forEach(b => {
+      const offset = b.getAttribute('timeOffset') || '0';
+      const t_s = hmsToSec(offset);
+      const mediaEl = b.getElementsByTagNameNS(VAST_NS, 'MediaFile')[0];
+      const titleEl = b.getElementsByTagNameNS(VAST_NS, 'AdTitle')[0];
+      const durEl   = b.getElementsByTagNameNS(VAST_NS, 'Duration')[0];
+      BREAKS.push({
+        t_s, played: false,
+        media: mediaEl ? mediaEl.textContent.trim() : '',
+        title: titleEl ? titleEl.textContent.trim() : 'Ad',
+        duration_s: durEl ? hmsToSec(durEl.textContent.trim()) : 15,
+      });
+    });
+  } catch {}
+}
+
+function hmsToSec(s) {
+  const parts = s.split(':');
+  if (parts.length === 3) return +parts[0] * 3600 + +parts[1] * 60 + parseFloat(parts[2]);
+  if (parts.length === 2) return +parts[0] * 60 + parseFloat(parts[1]);
+  return parseFloat(s) || 0;
+}
+
+// ── player ──
+const vid = $('vid-content');
+let adTimer = null;
+let adRemaining = 0;
+
+vid.addEventListener('timeupdate', () => {
+  if (IN_AD) return;
+  const t = vid.currentTime;
+  const b = AD_MODE && BREAKS.find(b => !b.played && t >= b.t_s && t < b.t_s + 1.5);
+  if (b) startAdOverlay(b);
+
+  const dur = vid.duration || 1;
+  $('scrubber-fill').style.width = (t / dur * 100) + '%';
+  $('ctrl-cur').textContent = fmt(t);
+  $('ctrl-dur').textContent = fmt(dur);
+
+  // timeline cursor
+  if (RESULT) {
+    const d = RESULT.result.meta.duration_s;
+    $('tl-cursor').style.left = (t / d * 100) + '%';
+  }
+});
+vid.addEventListener('seeked', () => {
+  if (!IN_AD) BREAKS.forEach(b => { if (b.t_s < vid.currentTime - 1.5) b.played = true; });
+});
+vid.addEventListener('play',  () => { $('icon-play').style.display = 'none';  $('icon-pause').style.display = ''; });
+vid.addEventListener('pause', () => { $('icon-play').style.display = '';  $('icon-pause').style.display = 'none'; });
+
+function togglePlay() { vid.paused ? vid.play() : vid.pause(); }
+
+function startAdOverlay(b) {
+  IN_AD = b; b.played = true;
+  vid.pause();
+  $('ad-brand-name').textContent = b.title;
+  $('ad-overlay').classList.add('show');
+  adRemaining = b.duration_s;
+  tickCountdown();
+}
+
+function tickCountdown() {
+  $('ad-countdown').textContent = `Returning to episode in ${Math.ceil(adRemaining)}s`;
+  if (adRemaining <= 0) { endAd(); return; }
+  adRemaining -= 1;
+  adTimer = setTimeout(tickCountdown, 1000);
+}
+
+function endAd() {
+  clearTimeout(adTimer);
+  const b = IN_AD; IN_AD = null;
+  $('ad-overlay').classList.remove('show');
+  vid.currentTime = b.t_s;
+  vid.play();
+}
+
+function setMode(mode) {
+  AD_MODE = mode === 'ads';
+  $('tog-ads').classList.toggle('active', AD_MODE);
+  $('tog-orig').classList.toggle('active', !AD_MODE);
+  if (!AD_MODE && IN_AD) endAd();
+}
+
+// ── scrubber ──
+function setupScrubber() {
+  const wrap = $('scrubber');
+  const seek = e => {
+    if (!vid.duration) return;
+    const r = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    vid.currentTime = pct * vid.duration;
+  };
+  let down = false;
+  wrap.addEventListener('mousedown', e => { down = true; seek(e); });
+  window.addEventListener('mousemove', e => { if (down) seek(e); });
+  window.addEventListener('mouseup', () => { down = false; });
+}
+
+function buildScrubberMarkers(dur) {
+  const bg = document.querySelector('.scrubber-bg');
+  bg.querySelectorAll('.ad-marker').forEach(el => el.remove());
+  BREAKS.forEach(b => {
+    const m = document.createElement('div');
+    m.className = 'ad-marker';
+    m.style.left = (b.t_s / dur * 100) + '%';
+    m.title = `Break at ${fmt(b.t_s)}`;
+    bg.appendChild(m);
+  });
+}
+
+// ── timeline ──
+function buildTimeline(res) {
+  const wrap = $('tl-wrap');
+  const scenes_el = $('tl-scenes');
+  scenes_el.innerHTML = '';
+  wrap.querySelectorAll('.tl-pin').forEach(e => e.remove());
+
+  const dur = res.meta.duration_s;
+  const pct = t => (t / dur * 100).toFixed(3) + '%';
+
+  res.scenes.forEach(s => {
+    const w = ((s.end_s - s.start_s) / dur * 100).toFixed(3);
+    const sens = s.sensitive_tags.filter(t => t.tag !== 'none' && t.confidence >= 0.10);
+    const color = MOOD_COLOR[s.mood] || 'rgba(139,148,158,.7)';
+    const tooltip = `<strong>#${s.id} ${s.mood}</strong><br>${fmt(s.start_s)}–${fmt(s.end_s)}<br>${esc(s.dominant_activity)}<br>${esc(s.summary_en)}${sens.length ? `<br><span style="color:var(--blocked)">⚠ ${sens.map(t=>t.tag).join(', ')}</span>` : ''}`;
+
+    const sw = document.createElement('div');
+    sw.className = 'tl-scene-wrap';
+    sw.style.cssText = `left:${pct(s.start_s)};width:${w}%;top:0;height:100%;position:absolute`;
+    sw.innerHTML = `
+      <div class="tl-scene" style="background:${color};width:100%;height:100%"></div>
+      ${sens.length ? `<div class="tl-hatch" style="width:100%;height:100%;top:0;left:0;position:absolute"></div>` : ''}
+      ${sens.length ? `<span class="tl-shield">🛡</span>` : ''}
+      <div class="tl-tooltip">${tooltip}</div>
+    `;
+    sw.addEventListener('click', () => { vid.currentTime = s.start_s; vid.play(); });
+    scenes_el.appendChild(sw);
+  });
+
+  // pins above bar
+  res.placements.forEach((p, i) => {
+    const pin = document.createElement('div');
+    pin.className = 'tl-pin';
+    pin.style.left = pct(p.t_s);
+    pin.innerHTML = `<div class="tl-pin-diamond">${i + 1}</div>`;
+    pin.title = `Break ${i + 1} at ${fmt(p.t_s)}`;
+    pin.addEventListener('click', () => {
+      vid.currentTime = Math.max(0, p.t_s - 5);
+      vid.play();
+      highlightBreakCard(i);
+    });
+    wrap.appendChild(pin);
+  });
+}
+
+function highlightBreakCard(idx) {
+  document.querySelectorAll('.break-card').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+  const card = document.querySelectorAll('.break-card')[idx];
+  if (card) card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+// ── break cards ──
+function buildBreakCards(res) {
+  const row = $('break-row');
+  row.innerHTML = '';
+  const bmap = Object.fromEntries(res.placements.map(p => [p.break_id, p]));
+
+  res.placements.forEach((p, i) => {
+    const why = [];
+    const cand = res.candidates.find(c => Math.abs(c.t_s - p.t_s) < 0.1);
+    if (cand?.is_scene_boundary) why.push('End of scene');
+    if (cand && (cand.pause_before_s + cand.pause_after_s) > 0.5)
+      why.push(`${(cand.pause_before_s + cand.pause_after_s).toFixed(1)} s natural pause`);
+    if (cand && cand.score) why.push(`Score ${cand.score.toFixed(2)}`);
+
+    const blocked = p.blocked_brands || [];
+
+    const card = document.createElement('div');
+    card.className = 'break-card';
+    card.innerHTML = `
+      <div class="bc-time">${fmt(p.t_s)}</div>
+      <div class="bc-brand">${esc(p.brand_id)}</div>
+      <div class="bc-cat">${esc(p.brand_reason?.split('.')[0] || '')}</div>
+      <div class="bc-reason">${esc(p.brand_reason || '')}</div>
+      ${why.length ? `<ul class="bc-why">${why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+      ${blocked.length ? `<div style="margin-bottom:8px"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Blocked for safety</div><div class="chips-wrap">${blocked.map(b => `<span class="chip chip-red">${esc(b.brand_id)} · ${esc(b.reason)}</span>`).join('')}</div></div>` : ''}
+      <button class="btn-secondary btn-sm" onclick="seekToBreak(${p.t_s})">Watch this break</button>
+    `;
+    row.appendChild(card);
+  });
+}
+
+function seekToBreak(t) {
+  vid.currentTime = Math.max(0, t - 5);
+  BREAKS.forEach(b => { if (b.t_s < t - 5) b.played = true; else b.played = false; });
+  vid.play();
+  $('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── candidates table ──
+function buildCandidates(res) {
+  renderCands(res.candidates);
+}
+
+function sortCands(key) {
+  if (CAND_SORT.key === key) CAND_SORT.asc = !CAND_SORT.asc;
+  else { CAND_SORT.key = key; CAND_SORT.asc = true; }
+  if (RESULT) renderCands(RESULT.result.candidates);
+}
+
+function renderCands(cands) {
+  const sorted = [...cands].sort((a, b) => {
+    const av = a[CAND_SORT.key] ?? '', bv = b[CAND_SORT.key] ?? '';
+    return CAND_SORT.asc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+  $('cand-body').innerHTML = sorted.map(c => `
+    <tr>
+      <td>${fmt(c.t_s)}</td>
+      <td><span style="color:${c.status==='selected'?'var(--green)':'var(--muted)'}">${esc(c.status)}</span></td>
+      <td>${c.score != null ? c.score.toFixed(3) : '—'}</td>
+      <td style="color:var(--muted);font-size:12px">${esc(c.reasons?.filter(r=>r.startsWith('REJECT')||r.startsWith('DROPPED')).join('; ') || '')}</td>
+    </tr>`).join('');
+}
+
+// ── brands grid ──
+async function loadBrandsGrid() {
+  let brands = [];
+  try { brands = await fetch('/api/brands').then(r => r.json()); } catch {}
+  $('brands-grid').innerHTML = brands.map(b => `
+    <div class="brand-card">
+      <div class="brand-name">${esc(b.name)}</div>
+      <div class="brand-cat">${esc(b.category)}</div>
+      <div class="chips-wrap" style="margin-bottom:6px">${b.target_contexts.map(t => `<span class="chip chip-grey">${esc(t)}</span>`).join('')}</div>
+      <div class="chips-wrap">${b.negative_contexts.map(t => `<span class="chip chip-red">${esc(t)}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+async function addBrand() {
+  const split = s => s.split(',').map(x => x.trim()).filter(Boolean);
+  const id = $('b-id').value.trim(), dur = +$('b-dur').value || 15;
+  const body = {brand_id: id, display_name: $('b-name').value.trim(), category: $('b-cat').value.trim(),
+    target_contexts: split($('b-tgt').value), negative_contexts: split($('b-neg').value),
+    creatives: [{id: `${id}_${dur}s`, duration_sec: dur, language: 'bn', url: `ads/${id}/${id}_${dur}s.mp4`}]};
+  const r = await fetch('/api/brands', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  $('brand-msg').textContent = r.ok ? 'Added. Click Re-match.' : await r.text();
+  if (r.ok) loadBrandsGrid();
+}
+
+// ── rematch ──
+async function doRematch() {
+  if (!RUN_ID) return;
+  $('rematch-btn').disabled = true;
+  $('rematch-msg').textContent = 'Re-matching…';
+  const r = await fetch(`/api/runs/${RUN_ID}/rematch`, {method:'POST'});
+  $('rematch-btn').disabled = false;
+  $('rematch-msg').textContent = r.ok ? 'Done.' : await r.text();
+  if (r.ok) { RESULT = await r.json(); BREAKS = []; await buildBreaks(RESULT.vmap_url); buildBreakCards(RESULT.result); buildScrubberMarkers(RESULT.result.meta.duration_s); buildTimeline(RESULT.result); loadBrandsGrid(); }
+}
+
+// ── drawer / tabs ──
+function toggleDrawer() {
+  const body = $('drawer-body'), arrow = $('drawer-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const panels = ['brands','candidates','downloads'];
+    t.classList.toggle('active', panels[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+}
 </script>
 </body>
 </html>
