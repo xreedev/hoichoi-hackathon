@@ -14,11 +14,11 @@ shots:
   detector: adaptive
 vad:
   threshold: 0.5
-  min_silence_duration_ms: 300
+  min_silence_duration_ms: 100
   min_speech_duration_ms: 250
 candidates:
-  min_pause_s: 0.8
-  clearance_s: 0.3
+  min_pause_s: 0.2
+  clearance_s: 0.1
   edge_exclusion_s: 60        # effective = min(60, 0.05 * duration)
   edge_exclusion_frac: 0.05
   scene_boundary_tol_s: 0.5   # a cut within ±this of an M5 scene boundary is a scene boundary
