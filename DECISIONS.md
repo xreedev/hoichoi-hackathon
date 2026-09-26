@@ -32,3 +32,6 @@ One line per decision. **(you)** = your call, **(me)** = my call under "make the
 - (me) Docker: `python:3.11-slim` + ffmpeg + DejaVu font (for slate text). CPU torch is installed first from the PyTorch index; the app runs as uid 1000 on port 7860.
 - (me) Deploy goes through a GitHub Action (`.github/workflows/deploy-hf.yml`, which runs `scripts/deploy_hf.py`) using the `HF_TOKEN` / `GEMINI_API_KEY` / `SARVAM_API_KEY` repo secrets, so no token passes through chat. The Space gets code, catalogue and the dev sample only (never `mohanagar`).
 - (me) No baked cache: the Space's first run of a video is cold (a few minutes); repeat runs and re-match use the cache until the Space restarts.
+- (you) No Hugging Face deploy. HF now requires PRO for Docker Spaces (402 on create). Removed the deploy workflow and script; the demo runs locally (SETUP.md) or via the Docker image.
+- (me) The held-out `mohanagar` run was done locally through the API, following SETUP.md, instead of on a live URL.
+- (me) Held-out `mohanagar` result: 0 breaks. 13 scene-boundary cuts were found, and all were rejected by the sensitivity gate (crime/police drama: `crime_or_police` ≥ 0.4 in every story scene). Spec-compliant; kept as is.

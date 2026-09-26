@@ -33,17 +33,15 @@ so a 9th brand works with zero code changes.
 
 ## Run it
 
+Full local setup (prerequisites, keys, sample videos, UI walkthrough, Docker, troubleshooting): **[SETUP.md](SETUP.md)**.
+
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
-cp .env.example .env   # add GEMINI_API_KEY (and SARVAM_API_KEY / TYPESAFE_API_KEY if you have them)
-
+cp .env.example .env                                      # add GEMINI_API_KEY
 python -m app.cli health                                  # check ffmpeg + keys
-python -m app.cli run --video assets/<episode>.mp4        # full pipeline → runs/<sha>/vmap.xml, debug.json
-python -m app.cli scenes --video assets/<episode>.mp4     # scene table only (every stage is cached)
 uvicorn app.api:app --port 7860                           # UI at http://localhost:7860
+python -m app.cli run --video assets/<episode>.mp4        # or CLI → runs/<sha>/vmap.xml, debug.json
 ```
-
-Each stage also runs on its own: `ingest`, `shots`, `scenes`, `candidates`, `run`.
 
 ## Tests
 
@@ -61,10 +59,9 @@ The API test runs the whole pipeline on a synthetic video with every AI call rep
 `POST /api/runs/{id}/rematch` (re-runs pacing → brands → manifest from cache, seconds) ·
 `GET|POST /api/brands` · `POST /api/brands/upload`
 
-## Deploy
+## Docker
 
-Docker image (`Dockerfile`) on Hugging Face Spaces, deployed by `.github/workflows/deploy-hf.yml` from the repo secrets
-`HF_TOKEN`, `GEMINI_API_KEY`, `SARVAM_API_KEY`.
+`docker build -t hoichoi-adbreaks . && docker run --rm -p 7860:7860 --env-file .env hoichoi-adbreaks` (see SETUP.md).
 
 ## Scope notes
 
