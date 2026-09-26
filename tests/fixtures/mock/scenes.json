@@ -1,0 +1,10 @@
+{
+ "text": "{\"scenes\": [{\"first_shot_id\": 0, \"last_shot_id\": 1, \"summary_en\": \"People are cooking in the kitchen.\", \"dominant_activity\": \"cooking in the kitchen\", \"setting\": \"a family home\", \"mood\": \"happy\", \"narrative_tension\": 0.2, \"sensitive_tags\": [{\"tag\": \"none\", \"confidence\": 0.95}], \"ends_on_cliffhanger\": false}, {\"first_shot_id\": 2, \"last_shot_id\": 3, \"summary_en\": \"People are chatting in the living room.\", \"dominant_activity\": \"chatting in the living room\", \"setting\": \"a family home\", \"mood\": \"happy\", \"narrative_tension\": 0.2, \"sensitive_tags\": [{\"tag\": \"none\", \"confidence\": 0.95}], \"ends_on_cliffhanger\": false}]}",
+ "step_types": [
+  "processing_call",
+  "processing_result",
+  "model_output"
+ ],
+ "model": "mock",
+ "processing": "agentic"
+}

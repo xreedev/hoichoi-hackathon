@@ -26,3 +26,5 @@ One line per decision. **(you)** = your call, **(me)** = my call under "make the
 - (you) Scope: skip M4 (placeholder stays) and delete M7. M8 stays a placeholder until deploy works and a TypeSafe key arrives.
 - (me) Removed `use_vjepa` and the V-JEPA model id from config. `visual_change` stays in the schema with weight 0.
 - (me) Result on the dev sample: only 3 of 12 scene boundaries fall in silence, and the 420 s gap leaves room for 1 break. Accepted as is.
+- (me) API keeps runs in memory; the pipeline runs in a background thread; SSE streams the run's event list. Re-match considers every brand in the current catalogue.
+- (me) Add brand / upload edits a working copy of the catalogue (`runs/_catalogue.json`); `assets/brands.json` is never modified.

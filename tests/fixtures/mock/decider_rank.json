@@ -1,0 +1,10 @@
+{
+ "model": "mock",
+ "raw": {
+  "brand": {
+   "brand_a": 0.8,
+   "brand_b": 0.1,
+   "brand_c": 0.1
+  }
+ }
+}

@@ -53,3 +53,16 @@ def silence_wav(tmp_path_factory) -> Path:
     out = tmp_path_factory.mktemp("media") / "silence.wav"
     ffmpeg("-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono", "-t", "10", "-c:a", "pcm_s16le", str(out))
     return out
+
+
+@pytest.fixture(scope="session")
+def silent_shots_video(tmp_path_factory) -> Path:
+    """Four solid-colour 5 s shots with a silent audio track (end-to-end API test)."""
+    out = tmp_path_factory.mktemp("media") / "silent_shots.mp4"
+    inputs: list[str] = []
+    for c in ("red", "green", "blue", "yellow"):
+        inputs += ["-f", "lavfi", "-i", f"color=c={c}:s=640x360:r=25:d=5"]
+    ffmpeg(*inputs, "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+           "-filter_complex", "[0:v][1:v][2:v][3:v]concat=n=4:v=1:a=0[v]", "-map", "[v]", "-map", "4:a",
+           "-t", "20", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(out))
+    return out
