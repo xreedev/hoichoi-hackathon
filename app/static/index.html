@@ -194,12 +194,15 @@ button:disabled { opacity: .4; cursor: default; }
                    background: var(--border); display: flex; align-items: center; justify-content: center; }
 .ctrl-bar button:hover { background: #2e3545; }
 .ctrl-time { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
-.scrubber-wrap { flex: 1; position: relative; height: 20px; display: flex; align-items: center; cursor: pointer; }
-.scrubber-bg { height: 4px; background: var(--border); border-radius: 2px; width: 100%; position: relative; }
-.scrubber-fill { height: 4px; background: var(--red); border-radius: 2px; position: absolute; left: 0; top: 0; width: 0%; }
+.scrubber-wrap { flex: 1; position: relative; height: 36px; display: flex; align-items: center; cursor: pointer; }
+.scrubber-bg { height: 5px; background: var(--border); border-radius: 3px; width: 100%; position: relative; }
+.scrubber-fill { height: 5px; background: var(--red); border-radius: 3px; position: absolute; left: 0; top: 0; width: 0%; }
 .ad-marker { position: absolute; top: 50%; transform: translate(-50%, -50%);
-             width: 10px; height: 10px; background: var(--amber); clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%);
-             z-index: 2; }
+             cursor: pointer; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ad-marker-diamond { width: 14px; height: 14px; background: var(--amber);
+                     clip-path: polygon(50% 0%,100% 50%,50% 100%,0% 50%); flex-shrink: 0; }
+.ad-marker-label { font-size: 9px; font-weight: 700; color: var(--amber); white-space: nowrap;
+                   font-variant-numeric: tabular-nums; line-height: 1; }
 
 /* ── TIMELINE ── */
 .timeline-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
@@ -1148,13 +1151,37 @@ function setupScrubber() {
 function buildScrubberMarkers(dur) {
   const bg = document.querySelector('.scrubber-bg');
   bg.querySelectorAll('.ad-marker').forEach(el => el.remove());
-  BREAKS.forEach(b => {
+  BREAKS.forEach((b, i) => {
     const m = document.createElement('div');
     m.className = 'ad-marker';
     m.style.left = (b.t_s / dur * 100) + '%';
-    m.title = `Break at ${fmt(b.t_s)}`;
+    m.title = `Ad break ${i+1} at ${fmt(b.t_s)} — click to jump`;
+    m.innerHTML = `<div class="ad-marker-diamond"></div><div class="ad-marker-label">${fmt(b.t_s)}</div>`;
+    m.addEventListener('click', e => {
+      e.stopPropagation();
+      vid.currentTime = Math.max(0, b.t_s - 3);
+      BREAKS.forEach(x => { x.played = x.t_s < b.t_s - 3; });
+      vid.play();
+    });
     bg.appendChild(m);
   });
+
+  // chapter bar: coloured segments between breaks on top of scrubber
+  const wrap = $('scrubber');
+  wrap.querySelectorAll('.chap-bar').forEach(e => e.remove());
+  const bar = document.createElement('div');
+  bar.className = 'chap-bar';
+  bar.style.cssText = 'position:absolute;top:4px;left:0;right:0;height:3px;pointer-events:none;z-index:1';
+  const segments = [0, ...BREAKS.map(b => b.t_s), dur];
+  segments.slice(0,-1).forEach((start, i) => {
+    const end = segments[i+1];
+    const seg = document.createElement('div');
+    seg.style.cssText = `position:absolute;top:0;height:100%;border-radius:2px;
+      left:${(start/dur*100).toFixed(2)}%;width:${((end-start)/dur*100).toFixed(2)}%;
+      background:${i % 2 === 0 ? 'rgba(232,234,240,.12)' : 'rgba(245,165,36,.18)'}`;
+    bar.appendChild(seg);
+  });
+  wrap.appendChild(bar);
 }
 
 // ── timeline ──
