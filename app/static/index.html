@@ -34,6 +34,35 @@ header { display: flex; align-items: center; justify-content: space-between;
         padding: 20px; }
 .card + .card { margin-top: var(--gap); }
 .card-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.card-section { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); }
+.card-section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+                      letter-spacing: .06em; margin-bottom: 12px; display: flex; align-items: center;
+                      justify-content: space-between; }
+
+/* brand selector chips */
+.brand-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.brand-chip  { display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+               border: 1px solid var(--border); border-radius: 20px; cursor: pointer;
+               font-size: 13px; font-weight: 500; background: var(--bg);
+               transition: border-color .15s, background .15s; user-select: none; }
+.brand-chip:hover   { border-color: var(--muted); }
+.brand-chip.selected { border-color: var(--green); background: rgba(61,214,140,.08); color: var(--green); }
+.brand-chip .bc-cat  { font-size: 11px; color: var(--muted); font-weight: 400; }
+.brand-chip.selected .bc-cat { color: rgba(61,214,140,.7); }
+.brand-chip .bc-check { display: none; }
+.brand-chip.selected .bc-check { display: inline; }
+.brand-all-btn { font-size: 12px; color: var(--muted); cursor: pointer; background: none; border: none;
+                 height: auto; padding: 0; font-family: inherit; }
+.brand-all-btn:hover { color: var(--text); }
+
+/* add brand inline form */
+.add-brand-toggle { font-size: 12px; color: var(--muted); cursor: pointer; display: flex;
+                    align-items: center; gap: 4px; margin-top: 4px; width: fit-content; }
+.add-brand-toggle:hover { color: var(--text); }
+.add-brand-form  { display: none; margin-top: 12px; }
+.add-brand-form.open { display: block; }
+.add-brand-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 700px) { .add-brand-grid { grid-template-columns: 1fr; } }
 
 /* ── BUTTONS ── */
 button { font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
@@ -299,7 +328,40 @@ input:focus { border-color: var(--red); }
     <div class="upload-bar-bg"><div class="upload-bar" id="upload-bar"></div></div>
     <div class="upload-label" id="upload-label">Uploading…</div>
   </div>
-  <div class="run-row">
+
+  <!-- brand selection -->
+  <div class="card-section">
+    <div class="card-section-title">
+      <span>Select brands to match</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="brand-all-btn" id="brand-sel-all" onclick="setBrandSel('all')">Select all</button>
+        <button class="brand-all-btn" id="brand-sel-none" onclick="setBrandSel('none')">Clear</button>
+      </div>
+    </div>
+    <div class="brand-chips" id="brand-chips">
+      <span class="muted" style="font-size:13px">Loading brands…</span>
+    </div>
+    <div class="add-brand-toggle" id="add-brand-toggle" onclick="toggleAddBrandForm()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add a brand
+    </div>
+    <div class="add-brand-form" id="add-brand-form">
+      <div class="add-brand-grid">
+        <div class="form-group"><label>Brand ID</label><input type="text" id="nb-id" placeholder="brand_x"></div>
+        <div class="form-group"><label>Display name</label><input type="text" id="nb-name" placeholder="Brand X"></div>
+        <div class="form-group"><label>Category</label><input type="text" id="nb-cat" placeholder="food / beverage"></div>
+        <div class="form-group"><label>Ad duration (s)</label><input type="number" id="nb-dur" value="15"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Target contexts (comma-separated)</label><input type="text" id="nb-tgt" placeholder="family, celebration"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Negative contexts (comma-separated)</label><input type="text" id="nb-neg" placeholder="funeral, hospital"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn-secondary btn-sm" onclick="submitNewBrand()">Add brand</button>
+        <span id="nb-msg" class="muted" style="font-size:12px"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="run-row" style="margin-top:20px">
     <button class="btn-primary" id="run-btn" disabled>Find ad breaks</button>
     <span class="status-msg" id="start-msg"></span>
   </div>
@@ -573,6 +635,7 @@ let pollTimer = null;
 window.addEventListener('DOMContentLoaded', () => {
   loadSamples();
   loadBrandsGrid();
+  loadBrandChips();
   setupDropZone();
   setupScrubber();
 });
@@ -607,6 +670,67 @@ async function loadSamples() {
     const tile = wrap.querySelector(`[data-id="${cached.id}"]`);
     if (tile) selectSample(cached, tile);
   }
+}
+
+// ── brand chips (start card) ──
+let ALL_BRANDS = [];
+let SELECTED_BRANDS = new Set(); // empty = all brands (no filter)
+
+async function loadBrandChips() {
+  try { ALL_BRANDS = await fetch('/api/brands').then(r => r.json()); } catch { ALL_BRANDS = []; }
+  // default: all selected
+  ALL_BRANDS.forEach(b => SELECTED_BRANDS.add(b.id));
+  renderBrandChips();
+}
+
+function renderBrandChips() {
+  const wrap = $('brand-chips');
+  if (!ALL_BRANDS.length) { wrap.innerHTML = '<span class="muted" style="font-size:13px">No brands in catalogue.</span>'; return; }
+  wrap.innerHTML = ALL_BRANDS.map(b => `
+    <div class="brand-chip ${SELECTED_BRANDS.has(b.id) ? 'selected' : ''}"
+         onclick="toggleBrand('${esc(b.id)}')" title="${esc(b.negative_contexts?.join(', ') || '')}">
+      <span class="bc-check">✓</span>
+      <span>${esc(b.name)}</span>
+      <span class="bc-cat">${esc(b.category)}</span>
+    </div>`).join('');
+}
+
+function toggleBrand(id) {
+  if (SELECTED_BRANDS.has(id)) SELECTED_BRANDS.delete(id);
+  else SELECTED_BRANDS.add(id);
+  renderBrandChips();
+}
+
+function setBrandSel(mode) {
+  if (mode === 'all') ALL_BRANDS.forEach(b => SELECTED_BRANDS.add(b.id));
+  else SELECTED_BRANDS.clear();
+  renderBrandChips();
+}
+
+function toggleAddBrandForm() {
+  $('add-brand-form').classList.toggle('open');
+  const t = $('add-brand-toggle');
+  t.innerHTML = $('add-brand-form').classList.contains('open')
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg> Cancel'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add a brand';
+}
+
+async function submitNewBrand() {
+  const split = s => s.split(',').map(x => x.trim()).filter(Boolean);
+  const id = $('nb-id').value.trim(), dur = +$('nb-dur').value || 15;
+  if (!id) { $('nb-msg').textContent = 'Brand ID required.'; return; }
+  const body = { brand_id: id, display_name: $('nb-name').value.trim(),
+    category: $('nb-cat').value.trim(), target_contexts: split($('nb-tgt').value),
+    negative_contexts: split($('nb-neg').value),
+    creatives: [{id: `${id}_${dur}s`, duration_sec: dur, language: 'bn', url: `ads/${id}/${id}_${dur}s.mp4`}] };
+  const r = await fetch('/api/brands', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if (r.ok) {
+    $('nb-msg').textContent = ''; $('nb-id').value = ''; $('nb-name').value = ''; $('nb-cat').value = '';
+    $('nb-tgt').value = ''; $('nb-neg').value = '';
+    toggleAddBrandForm();
+    await loadBrandChips();
+    loadBrandsGrid();
+  } else { $('nb-msg').textContent = await r.text(); }
 }
 
 function selectSample(s, tile) {
@@ -695,6 +819,10 @@ async function startRun() {
     } catch(e) { showStepError('Upload failed: ' + e.message); return; }
   } else {
     fd.append('sample_id', SELECTED.id);
+  }
+  // pass selected brands (empty set = send nothing = all brands used)
+  if (SELECTED_BRANDS.size > 0 && SELECTED_BRANDS.size < ALL_BRANDS.length) {
+    fd.append('brand_ids', [...SELECTED_BRANDS].join(','));
   }
 
   $('upload-wrap').style.display = 'none';
