@@ -125,9 +125,12 @@ aside{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0;overf
 .brand-tl-section{padding:14px 16px 10px;border-bottom:1px solid var(--border);flex:none}
 .brand-tl-row{display:flex;align-items:center;gap:10px;margin-top:10px}
 .brand-tl-label{font-size:12px;font-weight:500;white-space:nowrap;width:64px;flex:none;overflow:hidden;text-overflow:ellipsis}
-.brand-tl-bar{flex:1;height:14px;background:var(--hover);border-radius:3px;position:relative;cursor:pointer}
-.brand-tl-pip{position:absolute;top:0;bottom:0;width:3px;border-radius:2px;transform:translateX(-50%)}
-.brand-tl-pip:hover::after{content:attr(data-tip);position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1b1e;color:#fff;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10}
+.brand-tl-bar{flex:1;height:14px;background:var(--hover);border-radius:3px;position:relative}
+.brand-tl-pip{position:absolute;top:1px;bottom:1px;width:3px;border-radius:2px;transform:translateX(-50%);cursor:pointer}
+.brand-tl-pip:hover::after{content:attr(data-tip);position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#1a1b1e;color:#fff;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10}
+.brand-tl-block{position:absolute;top:3px;bottom:3px;width:2px;border-radius:1px;transform:translateX(-50%);background:#dcdad4;cursor:default}
+.brand-tl-block:hover::after{content:attr(data-tip);position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#6b6e74;color:#fff;font-size:10px;padding:3px 6px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10;max-width:200px;text-align:center}
+.brand-tl-status{font-size:10px;color:var(--dim);width:60px;text-align:right;flex:none;white-space:nowrap}
 
 /* Tech */
 .tech-btn{background:none;border:none;color:var(--muted);font-size:13px;padding:4px 0}
@@ -610,20 +613,29 @@ function selBreak(k){
 // ── per-brand timelines ──────────────────────────────────────────────────────
 function buildBrandTimelines(res){
   const dur=res.meta.duration_s;
-  // collect selected candidates that have ranking data
-  const scored=res.candidates.filter(c=>c.status==='selected'&&c.decisions?.brand_match?.ranking);
-  if(!scored.length){$('brand-tl-sec').classList.add('hidden');return;}
+  // all candidates that went through brand matching (selected or rejected-by-brands)
+  const evaluated=res.candidates.filter(c=>c.decisions?.brand_match);
+  if(!evaluated.length){$('brand-tl-sec').classList.add('hidden');return;}
 
-  // gather all brand ids with any score > 0
-  const brandIds=new Set();
-  scored.forEach(c=>Object.keys(c.decisions.brand_match.ranking).forEach(id=>brandIds.add(id)));
-  if(!brandIds.size){$('brand-tl-sec').classList.add('hidden');return;}
+  // every brand id that appears across all selected brands list
+  const allBrandIds=[...SEL_BRANDS];
+  if(!allBrandIds.length){$('brand-tl-sec').classList.add('hidden');return;}
 
   $('brand-tl-sec').classList.remove('hidden');
   const rows=$('brand-tl-rows'); rows.innerHTML='';
 
-  brandIds.forEach(bid=>{
+  allBrandIds.forEach(bid=>{
     const displayName=BRANDS.find(b=>(b.brand_id||b.id)===bid)?.display_name||bid;
+
+    // for each evaluated candidate: was this brand ranked or blocked?
+    let maxRankedP=0, hasRanked=false, hasWon=false;
+    evaluated.forEach(c=>{
+      const bm=c.decisions.brand_match;
+      const p=bm.ranking?.[bid];
+      if(p!=null){hasRanked=true; if(p>maxRankedP) maxRankedP=p;}
+      if(bm.winner===bid) hasWon=true;
+    });
+
     const row=document.createElement('div');
     row.className='brand-tl-row';
 
@@ -635,37 +647,46 @@ function buildBrandTimelines(res){
 
     const bar=document.createElement('div');
     bar.className='brand-tl-bar';
-    bar.title='Click to seek to this brand\'s break';
 
-    scored.forEach(c=>{
-      const p=c.decisions.brand_match.ranking[bid]??0;
-      if(p<0.05) return; // skip negligible scores
-      const isWinner=c.decisions.brand_match.winner===bid;
+    evaluated.forEach(c=>{
+      const bm=c.decisions.brand_match;
       const pct=(c.t_s/dur*100).toFixed(3)+'%';
-      // colour: winner=red, high=green, mid=amber, low=grey
-      let col;
-      if(isWinner) col='var(--red)';
-      else if(p>=0.6) col='var(--green)';
-      else if(p>=0.35) col='#f5a623';
-      else col='#c5c3be';
+      const p=bm.ranking?.[bid];
+      const blockedEntry=(bm.blocked||[]).find(b=>b.brand_id===bid);
 
-      const pip=document.createElement('div');
-      pip.className='brand-tl-pip';
-      pip.style.cssText=`left:${pct};background:${col};opacity:${0.4+p*0.6}`;
-      pip.dataset.tip=`${fmt(c.t_s)} · ${Math.round(p*100)}%${isWinner?' ★':''}`;
-      pip.onclick=e=>{e.stopPropagation();if(vid.src){vid.currentTime=Math.max(0,c.t_s-3);BREAKS.forEach(b=>{b.played=b.t_s<vid.currentTime;});vid.play();}};
-      bar.appendChild(pip);
+      if(p!=null && p>=0.05){
+        // ranked with meaningful score → coloured pip
+        const isWinner=bm.winner===bid;
+        let col=isWinner?'var(--red)':p>=0.6?'var(--green)':p>=0.35?'#f5a623':'#c5c3be';
+        const pip=document.createElement('div');
+        pip.className='brand-tl-pip';
+        pip.style.cssText=`left:${pct};background:${col};opacity:${Math.min(1,0.45+p*0.55)}`;
+        pip.dataset.tip=`${fmt(c.t_s)} · ${Math.round(p*100)}% match${isWinner?' ★ selected':''}`;
+        pip.onclick=e=>{e.stopPropagation();if(vid.src){vid.currentTime=Math.max(0,c.t_s-3);BREAKS.forEach(b=>{b.played=b.t_s<vid.currentTime;});vid.play();}};
+        bar.appendChild(pip);
+      } else if(blockedEntry){
+        // blocked by filter → thin grey tick with reason tooltip
+        const blk=document.createElement('div');
+        blk.className='brand-tl-block';
+        blk.style.left=pct;
+        // shorten reason
+        const shortReason=blockedEntry.reason?.replace(/negative context '([^']+)' matches .*/,'blocked: $1')
+          .replace(/semantic negative-context match .*/,'blocked: context match')||'blocked';
+        blk.dataset.tip=`${fmt(c.t_s)} · ${shortReason}`;
+        bar.appendChild(blk);
+      }
+      // p < 0.05 but not blocked = was ranked but AI gave very low probability → skip silently
     });
 
     row.appendChild(bar);
 
-    // max confidence label
-    const maxP=Math.max(...scored.map(c=>c.decisions.brand_match.ranking[bid]??0));
-    const conf=document.createElement('div');
-    conf.className='mono';
-    conf.style.cssText='font-size:10px;color:var(--muted);width:28px;text-align:right;flex:none';
-    conf.textContent=`${Math.round(maxP*100)}%`;
-    row.appendChild(conf);
+    // status label: peak %, or "always blocked", or "—"
+    const status=document.createElement('div');
+    status.className='brand-tl-status mono';
+    if(hasWon) status.style.color='var(--red)';
+    else if(hasRanked) status.style.color='var(--gt)';
+    status.textContent=hasRanked?`${Math.round(maxRankedP*100)}% peak`:'blocked';
+    row.appendChild(status);
 
     rows.appendChild(row);
   });
