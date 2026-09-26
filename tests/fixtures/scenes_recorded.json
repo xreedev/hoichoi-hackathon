@@ -1,0 +1,144 @@
+{
+ "shots": [
+  {
+   "id": 0,
+   "start_s": 0.0,
+   "end_s": 3.04
+  },
+  {
+   "id": 1,
+   "start_s": 3.04,
+   "end_s": 5.16
+  },
+  {
+   "id": 2,
+   "start_s": 5.16,
+   "end_s": 6.76
+  },
+  {
+   "id": 3,
+   "start_s": 6.76,
+   "end_s": 8.16
+  },
+  {
+   "id": 4,
+   "start_s": 8.16,
+   "end_s": 11.52
+  },
+  {
+   "id": 5,
+   "start_s": 11.52,
+   "end_s": 17.96
+  },
+  {
+   "id": 6,
+   "start_s": 17.96,
+   "end_s": 20.2
+  },
+  {
+   "id": 7,
+   "start_s": 20.2,
+   "end_s": 22.8
+  },
+  {
+   "id": 8,
+   "start_s": 22.8,
+   "end_s": 27.36
+  },
+  {
+   "id": 9,
+   "start_s": 27.36,
+   "end_s": 30.64
+  },
+  {
+   "id": 10,
+   "start_s": 30.64,
+   "end_s": 34.96
+  },
+  {
+   "id": 11,
+   "start_s": 34.96,
+   "end_s": 41.68
+  },
+  {
+   "id": 12,
+   "start_s": 41.68,
+   "end_s": 47.76
+  },
+  {
+   "id": 13,
+   "start_s": 47.76,
+   "end_s": 50.32
+  },
+  {
+   "id": 14,
+   "start_s": 50.32,
+   "end_s": 53.52
+  },
+  {
+   "id": 15,
+   "start_s": 53.52,
+   "end_s": 57.2
+  },
+  {
+   "id": 16,
+   "start_s": 57.2,
+   "end_s": 61.2
+  },
+  {
+   "id": 17,
+   "start_s": 61.2,
+   "end_s": 64.96
+  },
+  {
+   "id": 18,
+   "start_s": 64.96,
+   "end_s": 74.08
+  },
+  {
+   "id": 19,
+   "start_s": 74.08,
+   "end_s": 75.88
+  },
+  {
+   "id": 20,
+   "start_s": 75.88,
+   "end_s": 78.84
+  },
+  {
+   "id": 21,
+   "start_s": 78.84,
+   "end_s": 81.4
+  },
+  {
+   "id": 22,
+   "start_s": 81.4,
+   "end_s": 84.52
+  },
+  {
+   "id": 23,
+   "start_s": 84.52,
+   "end_s": 88.48
+  },
+  {
+   "id": 24,
+   "start_s": 88.48,
+   "end_s": 90.0
+  }
+ ],
+ "duration_s": 90.0,
+ "step_types": [
+  "processing_call",
+  "processing_result",
+  "processing_call",
+  "processing_result",
+  "processing_call",
+  "processing_result",
+  "processing_call",
+  "processing_result",
+  "thought",
+  "model_output"
+ ],
+ "model": "gemini-3.8-flash",
+ "text": "{\n  \"scenes\": [\n    {\n      \"first_shot_id\": 0,\n      \"last_shot_id\": 2,\n      \"summary_en\": \"Somak thanks a smiling woman on the street while searching for clues, and she cheerfully walks away.\",\n      \"dominant_activity\": \"talking to a passerby on the street\",\n      \"setting\": \"street outside the ghat\",\n      \"mood\": \"happy\",\n      \"narrative_tension\": 0.1,\n      \"sensitive_tags\": [\n        {\n          \"tag\": \"crime_or_police\",\n          \"confidence\": 0.1\n        },\n        {\n          \"tag\": \"none\",\n          \"confidence\": 0.9\n        }\n      ],\n      \"ends_on_cliffhanger\": false\n    },\n    {\n      \"first_shot_id\": 3,\n      \"last_shot_id\": 20,\n      \"summary_en\": \"Somak searches for clues inside the riverside ghat pavilion and is joined by guest Sreemoyee Mitra, with whom he playfully banters before introducing the show.\",\n      \"dominant_activity\": \"bantering and welcoming viewers at a riverside ghat\",\n      \"setting\": \"riverside ghat pavilion\",\n      \"mood\": \"comic\",\n      \"narrative_tension\": 0.2,\n      \"sensitive_tags\": [\n        {\n          \"tag\": \"crime_or_police\",\n          \"confidence\": 0.1\n        },\n        {\n          \"tag\": \"religious_ritual\",\n          \"confidence\": 0.1\n        },\n        {\n          \"tag\": \"none\",\n          \"confidence\": 0.85\n        }\n      ],\n      \"ends_on_cliffhanger\": false\n    },\n    {\n      \"first_shot_id\": 21,\n      \"last_shot_id\": 24,\n      \"summary_en\": \"Somak and Sreemoyee arrive in front of a colonial mansion beside a food truck, conversing about the peaceful environment near the Ganges.\",\n      \"dominant_activity\": \"walking and conversing outside a mansion\",\n      \"setting\": \"mansion courtyard by a food truck\",\n      \"mood\": \"happy\",\n      \"narrative_tension\": 0.1,\n      \"sensitive_tags\": [\n        {\n          \"tag\": \"none\",\n          \"confidence\": 0.95\n        }\n      ],\n      \"ends_on_cliffhanger\": false\n    }\n  ]\n} "
+}

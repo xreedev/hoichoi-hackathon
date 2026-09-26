@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -57,6 +58,35 @@ class GeminiClient:
         save_raw(self.raw_dir, name, it.model_dump(mode="json"))
         return it
 
+    def stream_text(self, name: str, timeout_s: float, **body: Any) -> dict[str, Any]:
+        """Streaming interactions.create. Concatenates model-output text deltas.
+
+        Returns {"text", "step_types", "model", "usage"}; raises on an error event.
+        """
+        def consume() -> dict[str, Any]:
+            stream = self.client.interactions.create(timeout=timeout_s, stream=True, **body)
+            text: list[str] = []
+            step_types: list[str] = []
+            model, usage = body.get("model"), None
+            for ev in stream:
+                et = getattr(ev, "event_type", None)
+                if et == "step.start":
+                    step_types.append(getattr(ev.step, "type", "unknown"))
+                elif et == "step.delta" and getattr(ev.delta, "type", None) == "text":
+                    text.append(ev.delta.text)
+                elif et == "error":
+                    raise RuntimeError(f"Gemini stream error: {ev.error}")
+                elif et == "interaction.completed":
+                    inter = ev.interaction
+                    model = getattr(inter, "model", None) or model
+                    u = getattr(inter, "usage", None)
+                    usage = u.model_dump(mode="json") if u is not None else None
+            return {"text": "".join(text), "step_types": step_types, "model": model, "usage": usage}
+
+        out = self._call(name, consume)
+        save_raw(self.raw_dir, name, out)
+        return out
+
     def ping(self) -> str:
         if is_mock():
             return load_mock("gemini_ping")["output_text"]
@@ -68,6 +98,23 @@ class GeminiClient:
             generation_config={"thinking_level": "low"},
         )
         return it.output_text or ""
+
+    def upload_cached(self, path: Path, record: Path) -> dict[str, str]:
+        """Upload once and remember {name, uri, mime_type}; reuse while the file is still ACTIVE."""
+        if is_mock():
+            return {"name": "files/mock", "uri": "mock://proxy", "mime_type": "video/mp4"}
+        if record.exists():
+            rec = json.loads(record.read_text())
+            try:
+                f = self.client.files.get(name=rec["name"])
+                if f.state is not None and f.state.name == "ACTIVE":
+                    return rec
+            except Exception as e:  # noqa: BLE001 - expired / deleted → re-upload
+                log.info("cached Gemini file %s unusable (%s); re-uploading", rec.get("name"), e)
+        f = self.upload(path)
+        rec = {"name": f.name, "uri": f.uri, "mime_type": f.mime_type}
+        record.write_text(json.dumps(rec))
+        return rec
 
     def upload(self, path: Path):
         """Upload via the Files API and poll until ACTIVE."""
