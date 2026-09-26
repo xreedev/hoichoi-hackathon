@@ -25,10 +25,10 @@ candidates:
 decide:
   cascade_confidence_below: 0.6
 gates:
-  sensitive_block_p: 0.10     # block if P(any sensitive tag) > this, in prev OR next scene
-  emotional_peak_reject_p: 0.6
-  cliffhanger_reject: true
-  negative_context_noul_block_p: 0.10
+  sensitive_block_p: 0.35     # block if P(any sensitive tag) > this, in prev OR next scene
+  emotional_peak_reject_p: 0.7
+  cliffhanger_reject: false
+  negative_context_noul_block_p: 0.25
 scoring_weights:              # score = Σ w_i * feature_i, features normalised 0–1
   pause_len: 0.25
   is_scene_boundary: 0.25
@@ -39,8 +39,8 @@ scoring_weights:              # score = Σ w_i * feature_i, features normalised 
 scoring:
   pause_len_cap_s: 3.0        # pause_len feature = min(1, total silence around the cut / this)
 pacing:                        # §5 defaults (no handbook values supplied)
-  max_breaks_per_hour: 6
-  min_gap_s: 420
+  max_breaks_per_hour: 8
+  min_gap_s: 240
   max_ad_load_pct: 15
   default_ad_duration_s: 15
 concurrency:
