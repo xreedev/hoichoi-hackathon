@@ -81,6 +81,10 @@ class ScoringWeightsCfg(_Section):
     visual_change: float
 
 
+class ScoringCfg(_Section):
+    pause_len_cap_s: float
+
+
 class PacingCfg(_Section):
     max_breaks_per_hour: int
     min_gap_s: float
@@ -120,6 +124,7 @@ class Config(_Section):
     decide: DecideCfg
     gates: GatesCfg
     scoring_weights: ScoringWeightsCfg
+    scoring: ScoringCfg
     pacing: PacingCfg
     concurrency: ConcurrencyCfg
     timeouts: TimeoutsCfg

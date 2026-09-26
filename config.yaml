@@ -38,6 +38,8 @@ scoring_weights:              # score = Σ w_i * feature_i, features normalised 
   break_quality: 0.20
   low_tension_prev: 0.10
   visual_change: 0.0          # set to 0.10 and rescale others only when use_vjepa=true
+scoring:
+  pause_len_cap_s: 3.0        # pause_len feature = min(1, total silence around the cut / this)
 pacing:                        # §5 defaults (no handbook values supplied)
   max_breaks_per_hour: 6
   min_gap_s: 420
