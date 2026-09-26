@@ -53,8 +53,6 @@ def hard_reject_reasons(c: Candidate, scenes: dict[int, Scene], cfg: Config) -> 
     prev, nxt = scenes.get(c.prev_scene_id), scenes.get(c.next_scene_id)
     if prev is None or nxt is None:
         return ["REJECT no scene context around the cut (fail-safe)"]
-    if not c.is_scene_boundary:
-        reasons.append("REJECT not at a scene boundary")
     for label, sc in (("prev", prev), ("next", nxt)):
         hit = scene_sensitive(sc)
         if hit and hit[1] > g.sensitive_block_p:

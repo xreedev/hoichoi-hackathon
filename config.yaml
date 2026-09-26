@@ -40,7 +40,7 @@ scoring:
   pause_len_cap_s: 3.0        # pause_len feature = min(1, total silence around the cut / this)
 pacing:                        # §5 defaults (no handbook values supplied)
   max_breaks_per_hour: 20
-  min_gap_s: 60
+  min_gap_s: 30
   max_ad_load_pct: 25
   default_ad_duration_s: 15
 concurrency:
