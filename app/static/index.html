@@ -685,7 +685,7 @@ async function startRun() {
   resetProgress();
   $('progress-card').classList.remove('hidden');
   $('results').classList.add('hidden');
-  setStep('upload', 'active');
+  activateStage('ingest');
 
   const fd = new FormData();
   if (SELECTED.type === 'file') {
@@ -697,7 +697,6 @@ async function startRun() {
     fd.append('sample_id', SELECTED.id);
   }
 
-  setStep('upload', 'done', '');
   $('upload-wrap').style.display = 'none';
 
   let res;
