@@ -41,6 +41,24 @@ def _ingest(args: argparse.Namespace, cfg: Config) -> int:
     return 0
 
 
+def _meta(args: argparse.Namespace, cfg: Config):
+    from app.modules.ingest import ingest
+
+    return ingest(Path(args.video), cfg)
+
+
+@command("shots", "M2: shot boundaries (PySceneDetect adaptive)", _video_args)
+def _shots(args: argparse.Namespace, cfg: Config) -> int:
+    from app.modules import shots
+
+    out = shots.run(_meta(args, cfg), cfg, force=args.force)
+    lens = sorted(s.end_s - s.start_s for s in out)
+    print(f"{len(out)} shots; median length {lens[len(lens) // 2]:.1f}s")
+    for s in out[:10]:
+        print(f"  #{s.id:<4} {s.start_s:8.2f} → {s.end_s:8.2f}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     ap.add_argument("-v", "--verbose", action="store_true")
