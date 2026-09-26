@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 from collections.abc import Callable
+from pathlib import Path
 
 from app.config import Config, load_config
 
@@ -30,6 +31,14 @@ def _health(args: argparse.Namespace, cfg: Config) -> int:
     from app.modules import health
 
     return health.main(cfg)
+
+
+@command("ingest", "M1: sha256, metadata, 360p proxy, 16 kHz WAV", _video_args)
+def _ingest(args: argparse.Namespace, cfg: Config) -> int:
+    from app.modules.ingest import ingest
+
+    print(ingest(Path(args.video), cfg, force=args.force).model_dump_json(indent=2))
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
