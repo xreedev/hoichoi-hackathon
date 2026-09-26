@@ -29,13 +29,11 @@ class ModelsCfg(_Section):
     asr_fallback: str
     sarvam_asr: str
     jev: str
-    vjepa: str
 
 
 class FlagsCfg(_Section):
     use_sarvam: bool
     use_jev: bool
-    use_vjepa: bool
 
 
 class IngestCfg(_Section):

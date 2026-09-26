@@ -36,7 +36,8 @@ def find_candidates(
     gaps = silences(speech, duration_s)
     gap_starts = [g[0] for g in gaps]
     edge = min(c.edge_exclusion_s, c.edge_exclusion_frac * duration_s)
-    scene_bounds = [s.start_s for s in sorted(scenes, key=lambda s: s.start_s)[1:]]
+    ordered = sorted(scenes, key=lambda s: s.start_s)
+    bounds = [(a.end_s, a.id, b.id) for a, b in zip(ordered, ordered[1:], strict=False)]  # (t, prev, next)
 
     out: list[Candidate] = []
     for shot in sorted(shots, key=lambda s: s.start_s)[1:]:
@@ -52,9 +53,12 @@ def find_candidates(
             continue
         if any(ch.start_s <= t <= ch.end_s for ch in transcript):
             continue
-        prev_id = _scene_at(scenes, t - c.clearance_s)
-        next_id = _scene_at(scenes, t + c.clearance_s)
-        on_boundary = any(abs(t - b) <= c.scene_boundary_tol_s for b in scene_bounds)
+        near = min(bounds, key=lambda b: abs(t - b[0]), default=None)
+        on_boundary = near is not None and abs(t - near[0]) <= c.scene_boundary_tol_s
+        if on_boundary:  # the scenes on either side of the boundary, even if t is a few frames off it
+            prev_id, next_id = near[1], near[2]
+        else:
+            prev_id, next_id = _scene_at(scenes, t - c.clearance_s), _scene_at(scenes, t + c.clearance_s)
         out.append(Candidate(
             id=len(out), t_s=t, shot_boundary_id=shot.id,
             pause_before_s=round(before, 3), pause_after_s=round(after, 3),

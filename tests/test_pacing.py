@@ -60,11 +60,11 @@ def test_never_violates_pacing_rules():
 
 def test_sensitive_candidate_never_selected_even_with_top_score():
     scenes = [scene(0, 0, 600), scene(1, 600, 1200, tags=(("funeral", 0.3), ("none", 0.7)), tension=0.0),
-              scene(2, 1200, 1800)]
+              scene(2, 1200, 1800), scene(3, 1800, 2400)]
     top = cand(0, 600.0, 0, 1, pause=10, dec=good_dec())  # best possible features, but next scene = funeral
     meh = cand(1, 1500.0, 1, 2, pause=0.9, boundary=False, dec=good_dec(ends_scene={"noul": 0.1}))
-    ok = cand(2, 300.0, 0, 0, pause=0.9, boundary=False, dec=good_dec(ends_scene={"noul": 0.1}))
-    out = {c.id: c for c in pacing.apply([top, meh, ok], scenes, 1800, CFG)}
+    ok = cand(2, 300.0, 0, 3, pause=0.9, dec=good_dec(ends_scene={"noul": 0.1}))
+    out = {c.id: c for c in pacing.apply([top, meh, ok], scenes, 2400, CFG)}
     assert out[0].score >= out[2].score
     assert out[0].status == "rejected" and any("funeral" in r for r in out[0].reasons)
     assert out[1].status == "rejected"  # prev scene is the funeral scene
@@ -111,3 +111,10 @@ def test_rolling_window_cap():
     out = pacing.apply(cands, scenes, 7200, cfg)
     assert sum(c.status == "selected" for c in out) == cfg.pacing.max_breaks_per_hour
     assert pacing.violations(out, 7200, cfg) == []
+
+
+def test_mid_scene_cut_is_never_selected():
+    scenes = [scene(0, 0, 900), scene(1, 900, 1800)]
+    mid = cand(0, 400.0, 0, 0, pause=10, boundary=False, dec=good_dec())
+    out = pacing.apply([mid], scenes, 1800, CFG)
+    assert out[0].status == "rejected" and any("scene boundary" in r for r in out[0].reasons)

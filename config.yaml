@@ -4,11 +4,9 @@ models:
   asr_fallback: gemini-3.5-transcribe
   sarvam_asr: "saaras:v3"
   jev: jev-latest
-  vjepa: facebook/vjepa2-vitl-fpc64-256
 flags:
   use_sarvam: true
   use_jev: true          # auto-false if TYPESAFE_API_KEY missing → Gemini fallback decider
-  use_vjepa: false
 ingest:
   proxy_height: 360
   audio_sr: 16000
@@ -37,7 +35,7 @@ scoring_weights:              # score = Σ w_i * feature_i, features normalised 
   ends_scene_p: 0.20
   break_quality: 0.20
   low_tension_prev: 0.10
-  visual_change: 0.0          # set to 0.10 and rescale others only when use_vjepa=true
+  visual_change: 0.0          # M7 (V-JEPA) dropped from scope; kept at 0
 scoring:
   pause_len_cap_s: 3.0        # pause_len feature = min(1, total silence around the cut / this)
 pacing:                        # §5 defaults (no handbook values supplied)

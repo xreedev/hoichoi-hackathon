@@ -68,3 +68,6 @@ def test_scene_fields():
     assert by_t[200.0].is_scene_boundary and by_t[200.0].prev_scene_id == 0
     assert by_t[200.0].next_scene_id == 1
     assert not by_t[400.0].is_scene_boundary and by_t[400.0].prev_scene_id == 1
+    # a cut within the tolerance but past the boundary still maps to the scenes on either side
+    out = find_candidates(shots_at(200.7), [], [], scenes, DUR, C)
+    assert out[0].is_scene_boundary and (out[0].prev_scene_id, out[0].next_scene_id) == (0, 1)

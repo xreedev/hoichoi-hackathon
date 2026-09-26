@@ -1,4 +1,4 @@
-"""M12 pipeline: M1 → (M2 ‖ M3 ‖ M4 ‖ Gemini upload) → M5 → M6 → (M7) → M8 → M9 → M10 → M11.
+"""M12 pipeline: M1 → (M2 ‖ M3 ‖ M4 ‖ Gemini upload) → M5 → M6 → M8 → M9 → M10 → M11.
 
 Perception stages are cached per video; `rematch` re-runs only M9–M11 so catalogue/pacing edits take seconds.
 """
@@ -116,12 +116,6 @@ class Pipeline:
         cands: list[Candidate] = await self._stage(
             "candidates", lambda: candidates.run(meta, sh, sp, tr, sc, cfg, force, self.timings),
             lambda o: f"{len(sh)} shots → {len(o)} candidates")
-
-        if cfg.flags.use_vjepa:
-            from app.modules import boundary_embed
-            cands = await self._stage("boundary_embed",
-                                      lambda: boundary_embed.run(meta, cands, cfg, force, self.timings),
-                                      lambda o: f"{sum(c.visual_change is not None for c in o)} embedded")
 
         dec_warn: list[str] = []
         dec_versions: dict[str, str] = {}

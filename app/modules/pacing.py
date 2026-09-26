@@ -53,6 +53,8 @@ def hard_reject_reasons(c: Candidate, scenes: dict[int, Scene], cfg: Config) -> 
     prev, nxt = scenes.get(c.prev_scene_id), scenes.get(c.next_scene_id)
     if prev is None or nxt is None:
         return ["REJECT no scene context around the cut (fail-safe)"]
+    if not c.is_scene_boundary:
+        reasons.append("REJECT not at a scene boundary")
     for label, sc in (("prev", prev), ("next", nxt)):
         hit = scene_sensitive(sc)
         if hit and hit[1] > g.sensitive_block_p:
@@ -65,7 +67,7 @@ def hard_reject_reasons(c: Candidate, scenes: dict[int, Scene], cfg: Config) -> 
     if peak is not None and peak > g.emotional_peak_reject_p:
         reasons.append(f"REJECT emotional peak p={peak:.2f} > {g.emotional_peak_reject_p}")
     if g.cliffhanger_reject and prev.ends_on_cliffhanger:
-        reasons.append("REJECT previous scene ends on a cliffhanger")
+        reasons.append("REJECT scene before the cut ends on a cliffhanger")
     return reasons
 
 
