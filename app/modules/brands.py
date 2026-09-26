@@ -227,31 +227,60 @@ async def match_all(meta: VideoMeta, candidates: list[Candidate], scenes: list[S
         else:
             matched.append((c, m))
 
-    # Ad-load re-check with the real creative lengths (Step-0 decision B); drop lowest-score breaks first.
-    def load(items):
-        return sum(ad_duration(m["winner"], cfg) for _, m in items) * 100.0 / meta.duration_s
-    while matched and load(matched) > cfg.pacing.max_ad_load_pct:
-        worst = min(matched, key=lambda cm: (cm[0].score or 0.0, -cm[0].t_s))
-        matched.remove(worst)
-        c = worst[0]
-        c.status = "rejected"
-        c.reasons.append(f"DROPPED ad load with real creative lengths > {cfg.pacing.max_ad_load_pct}%")
+    # Brand-diversity allocation: one break per brand at its best unclaimed slot.
+    # Build per-brand candidate list from ranking scores across all matched candidates.
+    brand_obj: dict[str, Brand] = {b.id: b for b in brands}
+    brand_slots: dict[str, list[tuple[Candidate, float, dict[str, Any]]]] = {b.id: [] for b in brands}
+    for c, m in matched:
+        for bid, prob in m["ranking"].items():
+            if prob > 0.01 and bid in brand_slots:
+                brand_slots[bid].append((c, prob, m))
+    for bid in brand_slots:
+        brand_slots[bid].sort(key=lambda x: x[1], reverse=True)
 
-    matched.sort(key=lambda cm: cm[0].t_s)
+    # Greedy: highest peak-confidence brand first, assign to best unclaimed slot.
+    sorted_brands = sorted(
+        [(bid, slots) for bid, slots in brand_slots.items() if slots],
+        key=lambda kv: kv[1][0][1], reverse=True)
+    used_times: list[float] = []
+    assigned: list[tuple[Candidate, Brand, float, dict[str, Any]]] = []
+    for bid, slots in sorted_brands:
+        brand = brand_obj.get(bid)
+        if brand is None:
+            continue
+        for cand, prob, m in slots:
+            gap_ok = all(abs(cand.t_s - t) >= cfg.pacing.min_gap_s for t in used_times)
+            if gap_ok:
+                used_times.append(cand.t_s)
+                assigned.append((cand, brand, prob, m))
+                cand.decisions["brand_match"]["assigned_brand"] = bid
+                break
+
+    # Ad-load cap: drop lowest-confidence assignments first.
+    def total_load(items: list[tuple[Candidate, Brand, float, dict[str, Any]]]) -> float:
+        return sum(ad_duration(b, cfg) for _, b, _, _ in items) * 100.0 / meta.duration_s
+    while assigned and total_load(assigned) > cfg.pacing.max_ad_load_pct:
+        worst = min(assigned, key=lambda x: x[2])
+        assigned.remove(worst)
+        worst[0].status = "rejected"
+        worst[0].reasons.append(f"DROPPED ad load > {cfg.pacing.max_ad_load_pct}%")
+
+    assigned.sort(key=lambda x: x[0].t_s)
     reasons = await asyncio.gather(*(asyncio.to_thread(
-        reason_sentence, gemini, cfg, m["winner"], by_id[c.prev_scene_id], by_id[c.next_scene_id])
-        for c, m in matched))
+        reason_sentence, gemini, cfg, brand, by_id[cand.prev_scene_id], by_id[cand.next_scene_id])
+        for cand, brand, _, _ in assigned))
     placements: list[Placement] = []
-    for n, ((c, m), why) in enumerate(zip(matched, reasons, strict=True), start=1):
-        w: Brand = m["winner"]
-        c.decisions["brand_match"]["reason"] = why
-        c.reasons.append(f"BRAND {w.id} p={m['ranking'].get(w.id, 0):.2f} at {fmt_t(c.t_s)}")
+    for n, ((cand, brand, prob, m), why) in enumerate(zip(assigned, reasons, strict=True), start=1):
+        cand.decisions["brand_match"]["reason"] = why
+        cand.reasons.append(f"BRAND {brand.id} p={prob:.2f} at {fmt_t(cand.t_s)} (diversity-assigned)")
         placements.append(Placement(
-            break_id=f"break-{n}", t_s=c.t_s, brand_id=w.id, brand_probability=round(m["ranking"].get(w.id, 0.0), 4),
-            brand_reason=why, blocked_brands=m["blocked"], creative_path=w.creative_path,
-            ad_duration_s=ad_duration(w, cfg)))
+            break_id=f"break-{n}", t_s=cand.t_s, brand_id=brand.id,
+            brand_probability=round(prob, 4), brand_reason=why,
+            blocked_brands=m["blocked"], creative_path=brand.creative_path,
+            ad_duration_s=ad_duration(brand, cfg)))
     total_ad = sum(p.ad_duration_s for p in placements)
-    log.info("brands: %d selected breaks → %d placements (ad load %.1f%%)", len(selected), len(placements),
+    log.info("brands: %d candidates → %d placements covering %d brands (ad load %.1f%%)",
+             len(selected), len(placements), len({p.brand_id for p in placements}),
              100.0 * total_ad / meta.duration_s)
     return BrandStage(candidates=out, placements=placements)
 

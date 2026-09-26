@@ -39,9 +39,9 @@ scoring_weights:              # score = Σ w_i * feature_i, features normalised 
 scoring:
   pause_len_cap_s: 3.0        # pause_len feature = min(1, total silence around the cut / this)
 pacing:                        # §5 defaults (no handbook values supplied)
-  max_breaks_per_hour: 8
-  min_gap_s: 240
-  max_ad_load_pct: 15
+  max_breaks_per_hour: 20
+  min_gap_s: 60
+  max_ad_load_pct: 25
   default_ad_duration_s: 15
 concurrency:
   gemini_max_parallel: 2       # free tier; raise only if I say so
