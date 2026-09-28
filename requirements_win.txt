@@ -1,0 +1,20 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+google-genai>=2.3.0
+sarvamai
+typesafe-sdk
+scenedetect-headless==0.7.1
+silero-vad==6.2.3
+soundfile
+torch
+numpy
+fastapi
+uvicorn
+pydantic>=2
+python-dotenv
+pyyaml
+lxml
+httpx
+python-multipart
+pytest
+pytest-asyncio
+ruff
